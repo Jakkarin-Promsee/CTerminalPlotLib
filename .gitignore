@@ -1,0 +1,21 @@
+# Ignore compiled object files
+*.o
+
+# Ignore compiled executable files
+*.out
+*.exe
+
+# Ignore backup files
+*~
+
+# Ignore log files
+*.log
+
+# Ignore temporary files created by IDEs
+*.swp
+*.tmp
+.DS_Store
+
+# Ignore build directories
+build/
+bin/
