@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build C Program",
+			"type": "shell",
+			"command": "gcc",
+			"args": [
+				"-Iinclude",
+				"-o",
+				"my_program",
+				"src/CTerminalPlotLib.c",
+				"src/main.c"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "Run C Program",
+			"type": "shell",
+			"command": "${workspaceFolder}/my_program.exe",
+			"group": "test",
+			"dependsOn": "Build C Program",
+			"problemMatcher": []
+		}
+	]
+}

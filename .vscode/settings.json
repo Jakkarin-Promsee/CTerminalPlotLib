@@ -58,6 +58,10 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
     "*.ejs": "html",
-    "stdio.h": "c"
+    "stdio.h": "c",
+    "cterminalplotlib.h": "c",
+    "cterminalplotutils.h": "c",
+    "string.h": "c",
+    "stdlib.h": "c"
   }
 }
