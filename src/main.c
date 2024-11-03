@@ -10,7 +10,9 @@ int main()
 
     // Add data
     int avaliable_col = 3, avaliable_row = 7, max_row = 100;
-    CTP_PARAM data[][100] = {{1, 2, 3, 4, 5, 6}, {11, 22, 33, 44, 55, 66}, {15, 2, 42, 53, 62}};
+    CTP_PARAM data[][100] = {{-3, -2, -1, 0, 1, 2, 3},
+                             {-3, -2, -1, 0, 1, 2, 3},
+                             {3, 2, 1, 0, -1, -2, -3}};
     ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
     // ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
 
@@ -22,15 +24,21 @@ int main()
         "group 2"};
     ctp_add_label(dataSet, name, max_name_length, avaliable_name);
 
-    dataSet->plotProperties->customize_display = false;
+    dataSet->plotProperties->customize_display = true;
+    dataSet->chosen_Y_param = 0;
     dataSet->chosen_X_param_size = 2;
     dataSet->chosen_X_param[0] = 1;
-    dataSet->chosen_X_param[1] = 3;
-    dataSet->show_end = 6;
+    dataSet->chosen_X_param[1] = 2;
+    dataSet->show_begin = 0;
+    dataSet->show_end = 7;
     // Check DataSet poproties
-    ctp_printf_poproties(dataSet);
+    ctp_printf_properties(dataSet);
     // ctp_printf_dataset(dataSet, dataSet->db);
 
+    // ctp_plot(dataSet);
+    // ctp_utils_update_db_cal(dataSet);
+    // ctp_utils_sort_db_by_y_param(dataSet);
+    ctp_printf_dataset(dataSet, dataSet->db_cal);
     ctp_plot(dataSet);
 
     return 0;

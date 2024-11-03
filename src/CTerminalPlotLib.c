@@ -203,7 +203,7 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
 }
 
 // Print DataSet Function - use to show insid variable quickly
-void ctp_printf_poproties(const DataSet *dataSet)
+void ctp_printf_properties(const DataSet *dataSet)
 {
     printf("DataSet uses ");
     if (sizeof(CTP_PARAM) == sizeof(float))
@@ -255,6 +255,146 @@ void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db)
 }
 
 // Utils function
+void ctp_utils_update_db_cal(DataSet *data)
+{
+    for (int i = 0; i < data->db_rows_size; i++)
+    {
+        for (int j = 0; j < data->db_cols_size; j++)
+        {
+            data->db_cal[j][i] = data->db[j][i];
+        }
+    }
+}
+void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b)
+{
+    for (int i = 0; i < col; i++)
+    {
+        double temp = db[i][a];
+        db[i][a] = db[i][b];
+        db[i][b] = temp;
+    }
+}
+int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high)
+{
+    double pivot = db[chosen_Y_param][high]; // Choose the last element as pivot
+    int i = (low - 1);                       // Index of smaller element
+
+    for (int j = low; j < high; j++)
+    {
+        // If current element is smaller than or equal to pivot
+        if (db[chosen_Y_param][j] < pivot)
+        {
+            i++; // Increment index of smaller element
+            ctp_utils_swap(db, col, i, j);
+        }
+    }
+    ctp_utils_swap(db, col, i + 1, high);
+    return (i + 1); // Return the partitioning index
+}
+void ctp_utils_quicksort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high)
+{
+    if (low < high)
+    {
+        // Partition the array
+        int pi = ctp_utils_partition(db, chosen_Y_param, col, low, high);
+
+        // Recursively sort elements before and after partition
+        ctp_utils_quicksort(db, chosen_Y_param, col, low, pi - 1);
+        ctp_utils_quicksort(db, chosen_Y_param, col, pi + 1, high);
+    }
+}
+void ctp_utils_sort_db(DataSet *data)
+{
+    ctp_utils_update_db_cal(data);
+    ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
+}
+void ctp_utils_sort_db_by_y_param(DataSet *data)
+{
+    ctp_utils_update_db_cal(data);
+    ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
+}
+void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[])
+{
+    // Find min and max of X and Y axis (0 : x, 1 : y)
+    double min[2], max[2];
+
+    // Initialize value in min and max
+    bool initialDone[2] = {};
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+    {
+        if (initialDone[0] && initialDone[1])
+            break;
+        if (i == dataSet->chosen_Y_param)
+        {
+            min[1] = dataSet->db_cal[i][dataSet->show_begin];
+            max[1] = dataSet->db_cal[i][dataSet->show_begin];
+            initialDone[1] = true;
+        }
+        else
+        {
+            min[0] = dataSet->db_cal[i][dataSet->show_begin];
+            max[0] = dataSet->db_cal[i][dataSet->show_begin];
+            initialDone[2] = true;
+        }
+    }
+
+    // Find Min and Max by find 1 rows each
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+    {
+        bool isY = (i == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)) ? true : false;
+        for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
+        {
+            if (isY)
+            {
+                if (min[1] > dataSet->db_cal[i][j])
+                    min[1] = dataSet->db_cal[i][j];
+                if (max[1] < dataSet->db_cal[i][j])
+                    max[1] = dataSet->db_cal[i][j];
+            }
+            else
+            {
+                if (min[0] > dataSet->db_cal[i][j])
+                    min[0] = dataSet->db_cal[i][j];
+                if (max[0] < dataSet->db_cal[i][j])
+                    max[0] = dataSet->db_cal[i][j];
+            }
+        }
+    }
+
+    // Calculate normalize
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+    {
+        bool isY = (i == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)) ? true : false;
+        printf("\ni:%d %s\n", i, (isY) ? "Y" : "X");
+        for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
+        {
+            if (isY)
+                dataSet->db_cal[i][j] = (int)floor(((dataSet->db_cal[i][j]) / (max[1] - min[1])) * SCREEN_H);
+            else
+                dataSet->db_cal[i][j] = (int)floor(((dataSet->db_cal[i][j]) / (max[0] - min[0])) * SCREEN_W);
+        }
+    }
+    printf("%lf %lf %lf %lf\n", min[0], max[0], min[1], max[1]);
+    for (int i = 0; i < 2; i++)
+    {
+        int multiplier = (i == 0) ? SCREEN_W : SCREEN_H;
+
+        normalize_min[i] = ((min[i]) / (max[i] - min[i])) * multiplier;
+        normalize_max[i] = ((max[i]) / (max[i] - min[i])) * multiplier;
+    }
+}
+void ctp_utils_plot_with_space(const char s[], const char space[])
+{
+    for (int i = 0; i < SPACE_FRONT; i++)
+        printf("%*s", 1, space);
+    printf("%*s", 1, s);
+    for (int i = 0; i < SPACE_BACK; i++)
+        printf("%*s", 1, space);
+}
+void ctp_utils_print_color(const char s[])
+{
+    printf("%s", s);
+}
 
 // Main function
 void ctp_plot(const DataSet *dataSet)
@@ -263,10 +403,15 @@ void ctp_plot(const DataSet *dataSet)
     setlocale(LC_ALL, "");
 
     if (dataSet->plotProperties->table_plot)
-        ctp_plot_table(dataSet, dataSet->db);
+        ctp_plot_table(dataSet);
+    if (dataSet->plotProperties->line_plot)
+        ctp_plot_scatter(dataSet);
 }
-
-void ctp_plot_table(const DataSet *dataSet, CTP_PARAM **db)
+void ctp_plot_table(const DataSet *dataSet)
+{
+    ctp_plot_table_customize(dataSet, dataSet->db);
+}
+void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
     // Print header
     printf("%d Plots Total\n", (dataSet->plotProperties->customize_display) ? (dataSet->show_end - dataSet->show_begin) : dataSet->db_rows_size);
@@ -349,5 +494,118 @@ void ctp_plot_table(const DataSet *dataSet, CTP_PARAM **db)
             printf("%s", CORNER_THZ);
     }
     printf("%s", CORNER_BR);
+    printf("\n");
+}
+void ctp_plot_scatter(DataSet *dataSet)
+{
+    // Copy db to db_cal
+    ctp_utils_update_db_cal(dataSet);
+
+    // Sort db_cal
+    if (dataSet->plotProperties->customize_display)
+        ctp_utils_sort_db_by_y_param(dataSet);
+    else
+        ctp_utils_sort_db(dataSet);
+
+    // Print head of graph
+    printf("\nInitialize Scatter Plot\n");
+    printf("%d Plots Total\n", ((dataSet->plotProperties->customize_display) ? dataSet->show_end - dataSet->show_begin : dataSet->db_rows_size));
+    printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
+
+    // Find min and max of X and Y axis (0 : x, 1 : y)
+    CTP_PARAM min_normalize[2], max_normalize[2];
+
+    // Normalize scale of X and Y axis by saving on db_cal and recieve min andmax normalize
+    ctp_utils_normalizes(dataSet, min_normalize, max_normalize);
+
+    ctp_printf_dataset(dataSet, dataSet->db_cal);
+    // Declare iterator to find each point on graph
+    int ite = (dataSet->plotProperties->customize_display) ? dataSet->show_end
+                                                           : dataSet->db_rows_size;
+
+    // Count y from max to min (high to low)
+    for (int y = (int)ceil(max_normalize[1]) + 1; y >= (int)floor(min_normalize[1]) - 1; y--)
+    {
+        // Check that this y point have x
+        int y_stack = 0;
+        if ((int)(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - 1]) == y)
+        {
+            y_stack++;
+            ite--;
+
+            while ((int)(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - y_stack]) == y)
+            {
+                y_stack++;
+            }
+        }
+
+        char str[5];
+        sprintf(str, "%d", y);
+        printf("%*s\t", 5, str);
+
+        // Check amout of point in each x value
+        for (int x = (int)floor(min_normalize[0]); x < (int)ceil(max_normalize[0]) + 1; x++)
+        {
+            int overlapped = 0;
+            int col_overlapped = 0;
+            int col_stack = 1;
+
+            for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size); i++)
+            {
+                bool isFistForThisCol = false;
+                for (int j = 0; j < y_stack; j++)
+                {
+                    if ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[i] : i)][ite - j]) == x)
+                    {
+                        if (!isFistForThisCol)
+                            isFistForThisCol = true;
+                        else
+                            col_stack++;
+                        overlapped++;
+                        col_overlapped = ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[i] : (i - 1));
+                    }
+                }
+            }
+
+            if (overlapped - col_stack >= 0 && y_stack >= 1)
+            {
+                if (overlapped - col_stack == 0)
+                {
+                    if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
+                        ctp_utils_print_color(COLOR_RED);
+                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1)
+                        ctp_utils_print_color(COLOR_BLUE);
+                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2)
+                        ctp_utils_print_color(COLOR_YELLOW);
+                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3)
+                        ctp_utils_print_color(COLOR_MAGENTA);
+                    else
+                        ctp_utils_print_color(COLOR_RESET);
+                    ctp_utils_plot_with_space(POINT_SINGLE, " ");
+                }
+                else
+                {
+                    ctp_utils_print_color(COLOR_GREEN);
+                    ctp_utils_plot_with_space(POINT_OVERLAPPED, " ");
+                }
+                ctp_utils_print_color(COLOR_RESET);
+            }
+            else
+            {
+                if (x == 0 && y == 0)
+                    ctp_utils_plot_with_space(XY, X);
+                else if (x == 0)
+                    ctp_utils_plot_with_space(Y, " ");
+                else if (y == 0)
+                    ctp_utils_plot_with_space(X, X);
+                else
+                    ctp_utils_plot_with_space(" ", " ");
+            }
+        }
+        printf("\n");
+    }
+
+    for (int x = (int)floor(min_normalize[0]); x < (int)ceil(max_normalize[0]); x++)
+        printf("%d", x);
     printf("\n");
 }

@@ -24,7 +24,7 @@ int main()
     ctp_add_label(dataSet, name, max_name_length, avaliable_name);
 
     // Print DataSet information
-    ctp_printf_poproties(dataSet);
+    ctp_printf_properties(dataSet);
     ctp_printf_dataset(dataSet, dataSet->db);
 
     return 0;

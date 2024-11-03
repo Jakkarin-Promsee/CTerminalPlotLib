@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include <string.h>
 #include <windows.h>
 #include <locale.h>
@@ -93,9 +94,23 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet);
 
 // Print DataSet Function - use to show insid variable quickly
 void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
-void ctp_printf_poproties(const DataSet *dataSet);
+void ctp_printf_properties(const DataSet *dataSet);
 
 // Utils Function
+void ctp_utils_update_db_cal(DataSet *data);
+void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b);
+int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
+void ctp_utils_quickSort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
+void ctp_utils_sort_db(DataSet *data);
+void ctp_utils_sort_db_by_y_param(DataSet *data);
+void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[]);
+void ctp_utils_plot_with_space(const char s[], const char space[]);
+void ctp_utils_print_color(const char s[]);
+
 // Main Function
+void ctp_plot(const DataSet *dataSet);
+void ctp_plot_table(const DataSet *dataSet);
+void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db);
+void ctp_plot_scatter(DataSet *dataSet);
 
 #endif
