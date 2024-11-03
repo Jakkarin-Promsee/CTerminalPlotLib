@@ -67,7 +67,10 @@ extern char *COLOR_YELLOW;
 extern char *COLOR_MAGENTA;
 
 // Initial DataSet Function
-DataSet *ctp_initializeDataSet(int max_param, int max_name_size, int max_param_size);
-void ctp_freeDataSet(DataSet *dataset);
+DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
+void ctp_free_dataset(DataSet *dataset);
+void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
+void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
+void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
 
 #endif
