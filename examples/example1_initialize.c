@@ -10,7 +10,7 @@ int main()
 
     // Add data
     int avaliable_col = 3, avaliable_row = 6, max_row = 100;
-    CTP_PARAM data[][100] = {{1, 2, 3, 4, 5, 6}, {11, 22, 33, 44, 55, 66}, {15, 2, 42, 53, 62, CTP_NULL_VALUE}};
+    CTP_PARAM data[][100] = {{1, 2, 3, 4, 5, 6}, {11, 22, 33, 44, 55, 66}, {15, 2, 42, 53, 62}};
     ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
     ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
 
@@ -23,7 +23,6 @@ int main()
     ctp_add_label(dataSet, name, max_name_length, avaliable_name);
 
     // Check DataSet poproties
-    ctp_printf_poproties(dataSet);
     ctp_printf_dataset(dataSet, dataSet->db);
 
     return 0;

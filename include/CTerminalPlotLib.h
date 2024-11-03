@@ -6,8 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Default data type to double (8 Bytes) || float (4 Bytes)
+// Default data type to double (8 Bytes) || float (4 Bytes) || char (1 Bytes)
 typedef double CTP_PARAM;
+
+// Default null value of data in DataSet (should set relate to CTP_PARAM, Caution this value will not show on terminal)
+#define CTP_NULL_VALUE 4.04e-10
 
 // CTP DataFrame structure
 typedef struct
@@ -17,7 +20,7 @@ typedef struct
     int max_param_size;      // Maximum data points per parameter
     char **label;            // Array of labels
     CTP_PARAM **db;          // Data array
-    CTP_PARAM **db_sort;     // Sorted data array
+    CTP_PARAM **db_cal;      // Sorted data array
     int db_lable_avaliable;  // Index of avaliable lable,avoid prinf crash
     int db_cols_size;        // Number of columns
     int db_rows_size;        // Number of rows
@@ -67,11 +70,19 @@ extern char *COLOR_BLUE;
 extern char *COLOR_YELLOW;
 extern char *COLOR_MAGENTA;
 
-// Initial DataSet Function
+// Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
 void ctp_free_dataset(DataSet *dataset);
+
+// Manage DataSet Function - use to manage value of inside variable
 void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
 void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
+int ctp_get_dataset_memory_usage(const DataSet *dataSet);
+
+// Print DataSet Function - use to show insid variable quickly
 void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
+void ctp_printf_poproties(const DataSet *dataSet);
+
+// Main function
 
 #endif

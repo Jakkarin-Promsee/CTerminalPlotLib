@@ -65,14 +65,14 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
 
     // Allocate memory for data arrays
     dataset->db = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
-    dataset->db_sort = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
-    if (!dataset->db || !dataset->db_sort)
+    dataset->db_cal = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
+    if (!dataset->db || !dataset->db_cal)
         return NULL;
     for (int i = 0; i < max_param; i++)
     {
         dataset->db[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
-        dataset->db_sort[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
-        if (!dataset->db[i] || !dataset->db_sort[i])
+        dataset->db_cal[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
+        if (!dataset->db[i] || !dataset->db_cal[i])
             return NULL;
     }
 
@@ -85,6 +85,7 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     dataset->db_cols_size = 0;
     dataset->db_rows_size = 0;
     dataset->db_lable_avaliable = 0;
+    dataset->chosen_Y_param = 0;
     dataset->chosen_X_param_size = 0;
     dataset->show_begin = 0;
     dataset->show_end = 0;
@@ -107,10 +108,10 @@ void ctp_free_dataset(DataSet *dataset)
     for (int i = 0; i < dataset->max_param; i++)
     {
         free(dataset->db[i]);
-        free(dataset->db_sort[i]);
+        free(dataset->db_cal[i]);
     }
     free(dataset->db);
-    free(dataset->db_sort);
+    free(dataset->db_cal);
 
     // Free chosen_X_param array
     free(dataset->chosen_X_param);
@@ -128,8 +129,7 @@ void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_
     }
 
     // Ensure we do not exceed the current dataset sizes
-    int new_rows = dataset->db_rows_size + avaliable_row;
-    if (new_rows > dataset->max_param_size)
+    if (dataset->db_rows_size < avaliable_row || dataset->db_cols_size < avaliable_col)
     {
         fprintf(stderr, "Not enough space in the dataset to add more data\n");
         return;
@@ -163,9 +163,54 @@ void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int avali
     }
     dataset->db_lable_avaliable += avaliable_label;
 }
+int ctp_get_dataset_memory_usage(const DataSet *dataSet)
+{
+    int mem = 0;
+
+    // Calculate memory for label (2D character array)
+    mem += dataSet->max_param * dataSet->max_name_size * sizeof(char);
+
+    // Calculate memory for db and db_sort (2D CTP_PARAM arrays)
+    mem += 2 * (dataSet->max_param * dataSet->max_param_size * sizeof(CTP_PARAM));
+
+    // Calculate memory for chosen_X_param (integer array)
+    mem += dataSet->max_param * sizeof(int);
+
+    // Calculate memory for individual integers
+    mem += 10 * sizeof(int);
+
+    return mem;
+}
+void ctp_printf_poproties(const DataSet *dataSet)
+{
+    printf("DataSet uses ");
+    if (sizeof(CTP_PARAM) == sizeof(float))
+        printf("type float ");
+    else if (sizeof(CTP_PARAM) == sizeof(double))
+        printf("type double ");
+    else if (sizeof(CTP_PARAM) == sizeof(long double))
+        printf("type long double ");
+    else
+        printf("an unknown type ");
+    printf("to keep data\n");
+    printf("This DataSet memory usage is %d Bytes\n\n", ctp_get_dataset_memory_usage(dataSet));
+
+    printf("max_param: %d\nmax_name_size: %d\nmax_param_size: %d\n", dataSet->max_param, dataSet->max_name_size, dataSet->max_param_size);
+
+    printf("db_lable_avaliable: %d\ndb_rows_size: %d\ndb_cols_size: %d\n", dataSet->db_lable_avaliable, dataSet->db_rows_size, dataSet->db_cols_size);
+
+    printf("chosen_Y_param: %d\nchosen_X_param_size: %d\nchosen_X_param: ", dataSet->chosen_Y_param, dataSet->chosen_X_param_size);
+    for (int i = 0; i < dataSet->chosen_X_param_size; i++)
+    {
+        printf("%d, ", dataSet->chosen_X_param[i]);
+    }
+    printf("\n");
+
+    printf("show_begin: %d\nshow_end: %d\n", dataSet->show_begin, dataSet->show_end);
+}
 void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db)
 {
-    printf("rows: %d, cols: %d\n", dataSet->db_rows_size, dataSet->db_cols_size);
+    printf("\nDb value:\n");
     for (int i = 0; i < dataSet->db_cols_size; i++)
         if (i < dataSet->db_lable_avaliable)
             printf("%s\t", dataSet->label[i]);
@@ -177,7 +222,10 @@ void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db)
     {
         for (int j = 0; j < dataSet->db_cols_size; j++)
         {
-            printf("%.2lf\t", (double)db[j][i]);
+            if (db[j][i] != CTP_NULL_VALUE)
+                printf("%.2lf\t", (double)db[j][i]);
+            else
+                printf("\t");
         }
         printf("\n");
     }

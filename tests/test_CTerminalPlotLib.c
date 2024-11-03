@@ -3,6 +3,7 @@
 
 int main()
 {
+    printf("%lf", (double)sizeof(char));
 
     return 0;
 }
