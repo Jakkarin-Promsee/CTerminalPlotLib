@@ -18,6 +18,7 @@ typedef struct
     char **label;            // Array of labels
     CTP_PARAM **db;          // Data array
     CTP_PARAM **db_sort;     // Sorted data array
+    int db_lable_avaliable;  // Index of avaliable lable,avoid prinf crash
     int db_cols_size;        // Number of columns
     int db_rows_size;        // Number of rows
     int chosen_Y_param;      // Y parameter index

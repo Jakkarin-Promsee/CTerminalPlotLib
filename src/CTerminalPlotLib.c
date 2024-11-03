@@ -84,6 +84,7 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     // Initialize other properties
     dataset->db_cols_size = 0;
     dataset->db_rows_size = 0;
+    dataset->db_lable_avaliable = 0;
     dataset->chosen_X_param_size = 0;
     dataset->show_begin = 0;
     dataset->show_end = 0;
@@ -139,32 +140,37 @@ void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_
     {
         for (int j = 0; j < avaliable_row; j++)
         {
-            dataset->db[i][j] = (CTP_PARAM)(*((data + j) + i * max_row));
+            dataset->db[dataset->db_cols_size + i][j] = (CTP_PARAM)(*((data + j) + i * max_row));
         }
     }
 
-    // Update the row size of the dataset
+    // Update the row and column size of the dataset
     dataset->db_cols_size += avaliable_col;
-    dataset->db_rows_size += avaliable_row;
+    if (dataset->db_rows_size < avaliable_row)
+        dataset->db_rows_size = avaliable_row;
 }
-void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name)
+void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int avaliable_label)
 {
     // Check if the input parameters are valid
-    if (dataset == NULL || name == NULL || max_name_length <= 0 || avaliable_name <= 0)
+    if (dataset == NULL || label == NULL || max_name_length <= 0 || avaliable_label <= 0)
     {
         fprintf(stderr, "Invalid parameters provided to ctp_addData\n");
         return;
     }
-    for (int i = 0; i < avaliable_name; i++)
+    for (int i = 0; i < avaliable_label; i++)
     {
-        strcpy(dataset->label[i], (name + i * max_name_length));
+        strcpy(dataset->label[i], (label + i * max_name_length));
     }
+    dataset->db_lable_avaliable += avaliable_label;
 }
 void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db)
 {
     printf("rows: %d, cols: %d\n", dataSet->db_rows_size, dataSet->db_cols_size);
     for (int i = 0; i < dataSet->db_cols_size; i++)
-        printf("%s\t", dataSet->label[i]);
+        if (i < dataSet->db_lable_avaliable)
+            printf("%s\t", dataSet->label[i]);
+        else
+            printf("N/A\t");
     printf("\n");
 
     for (int i = 0; i < dataSet->db_rows_size; i++)
