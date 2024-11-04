@@ -19,6 +19,11 @@ char *CORNER_HZ = "─";
 // 2D Graph Plot assets initialize
 int SCREEN_H = 20;
 int SCREEN_W = 60;
+int BORDER_EDGE = 2;
+int Y_SCALE_LENGTH = 5;
+int X_SCALE_LENGTH = 5;
+int Y_SCALE_MOD = 5;
+int X_SCALE_MOD = 15;
 int SPACE_FRONT = 0;
 int SPACE_BACK = 0;
 
@@ -313,12 +318,9 @@ void ctp_utils_sort_db_by_y_param(DataSet *data)
     ctp_utils_update_db_cal(data);
     ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
 }
-void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[])
+void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[], double min[], double max[])
 {
     // Find min and max of X and Y axis (0 : x, 1 : y)
-    double min[2], max[2];
-
-    // Initialize value in min and max
     bool initialDone[2] = {};
     for (int i = 0; i < dataSet->db_cols_size; i++)
     {
@@ -374,7 +376,7 @@ void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double
                 dataSet->db_cal[i][j] = (int)floor(((dataSet->db_cal[i][j]) / (max[0] - min[0])) * SCREEN_W);
         }
     }
-    printf("%lf %lf %lf %lf\n", min[0], max[0], min[1], max[1]);
+
     for (int i = 0; i < 2; i++)
     {
         int multiplier = (i == 0) ? SCREEN_W : SCREEN_H;
@@ -513,38 +515,83 @@ void ctp_plot_scatter(DataSet *dataSet)
     printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
 
     // Find min and max of X and Y axis (0 : x, 1 : y)
-    CTP_PARAM min_normalize[2], max_normalize[2];
+    CTP_PARAM min_normalize[2], max_normalize[2], min[2], max[2];
 
     // Normalize scale of X and Y axis by saving on db_cal and recieve min andmax normalize
-    ctp_utils_normalizes(dataSet, min_normalize, max_normalize);
+    ctp_utils_normalizes(dataSet, min_normalize, max_normalize, min, max);
 
+    printf("%lf %lf %lf %lf\n", min[0], max[0], min[1], max[1]);
     ctp_printf_dataset(dataSet, dataSet->db_cal);
     // Declare iterator to find each point on graph
     int ite = (dataSet->plotProperties->customize_display) ? dataSet->show_end
                                                            : dataSet->db_rows_size;
 
+    // Top Line
+    char y_str[10];
+    int real_high = (int)ceil(max_normalize[1]) + 2 * BORDER_EDGE - (int)floor(min_normalize[1]) + 2;
+    if (real_high % Y_SCALE_MOD == 0)
+    {
+        sprintf(y_str, "%.1lf", (double)(ceil(max_normalize[1]) + BORDER_EDGE + 1) * (max[1] - min[1]) / SCREEN_H);
+    }
+    else
+        strcpy(y_str, "");
+    printf("%*s ", Y_SCALE_LENGTH, y_str);
+
+    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE; x++)
+    {
+        if (x == (int)floor(min_normalize[0]) - BORDER_EDGE)
+        {
+            printf("%*s", 1, CORNER_TL);
+            for (int i = 0; i < SPACE_BACK + SPACE_FRONT + 1; i++)
+                printf("%*s", 1, X);
+        }
+        else if (x == (int)ceil(max_normalize[0] + BORDER_EDGE - 1))
+        {
+            for (int i = 0; i < SPACE_BACK + SPACE_FRONT + 1; i++)
+                printf("%*s", 1, X);
+            printf("%s", CORNER_TR);
+        }
+
+        else
+            ctp_utils_plot_with_space(X, X);
+    }
+    real_high--;
+    printf("\n");
+
     // Count y from max to min (high to low)
-    for (int y = (int)ceil(max_normalize[1]) + 1; y >= (int)floor(min_normalize[1]) - 1; y--)
+    for (int y = (int)ceil(max_normalize[1]) + BORDER_EDGE; y >= (int)floor(min_normalize[1]) - BORDER_EDGE; y--)
     {
         // Check that this y point have x
         int y_stack = 0;
-        if ((int)(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - 1]) == y)
+        if ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - 1]) == y)
         {
             y_stack++;
             ite--;
 
-            while ((int)(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - y_stack]) == y)
+            while ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - y_stack]) == y)
             {
                 y_stack++;
             }
         }
 
-        char str[5];
-        sprintf(str, "%d", y);
-        printf("%*s\t", 5, str);
+        sprintf(y_str, "%.1lf", (double)y * (max[1] - min[1]) / SCREEN_H);
+        if (y == 0)
+        {
+            sprintf(y_str, "%.0lf", (double)y * (max[1] - min[1]) / SCREEN_H);
+            printf("%*s ", Y_SCALE_LENGTH, y_str);
+        }
+        else if (real_high % Y_SCALE_MOD == 0)
+            printf("%*s ", Y_SCALE_LENGTH, y_str);
+        else
+            printf("%*s ", Y_SCALE_LENGTH, "");
+
+        if (real_high % Y_SCALE_MOD == 0)
+            ctp_utils_plot_with_space(Y_ORIGIN, "");
+        else
+            ctp_utils_plot_with_space(Y, "");
 
         // Check amout of point in each x value
-        for (int x = (int)floor(min_normalize[0]); x < (int)ceil(max_normalize[0]) + 1; x++)
+        for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE; x++)
         {
             int overlapped = 0;
             int col_overlapped = 0;
@@ -602,8 +649,55 @@ void ctp_plot_scatter(DataSet *dataSet)
                     ctp_utils_plot_with_space(" ", " ");
             }
         }
+        ctp_utils_plot_with_space(Y, "");
+        real_high--;
         printf("\n");
     }
+
+    // Buttom Line
+    int x_start = 0;
+    sprintf(y_str, "%.1lf", (double)(floor(min_normalize[1]) - BORDER_EDGE - 1) * (max[1] - min[1]) / SCREEN_H);
+    printf("%*s ", Y_SCALE_LENGTH, y_str);
+    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE + 2;)
+    {
+        if (x_start % X_SCALE_MOD == 0)
+        {
+            printf("%*s", 1, X_ORIGIN);
+        }
+        else if (x == (int)ceil(max_normalize[0]) + BORDER_EDGE + 1)
+        {
+            printf("%*s", 1, CORNER_BR);
+        }
+        else
+        {
+            printf("%*s", 1, X);
+        }
+        x += 1;
+        x_start += 1;
+    }
+    printf("\n");
+
+    // Button line scale
+    char x_str[10];
+    x_start = 0;
+    printf("%*s", Y_SCALE_LENGTH - 2, "");
+    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE + 2;)
+    {
+        sprintf(x_str, "%.1lf", (double)x * (max[0] - min[0]) / SCREEN_W);
+        if (x_start % X_SCALE_MOD == 0)
+        {
+            printf("%*s", X_SCALE_LENGTH, x_str);
+            x += X_SCALE_LENGTH;
+            x_start += X_SCALE_LENGTH;
+        }
+        else
+        {
+            printf("%*s", 1, "");
+            x += 1;
+            x_start += 1;
+        }
+    }
+    printf("\n");
 
     for (int x = (int)floor(min_normalize[0]); x < (int)ceil(max_normalize[0]); x++)
         printf("%d", x);

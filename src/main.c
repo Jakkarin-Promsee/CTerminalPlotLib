@@ -11,8 +11,8 @@ int main()
     // Add data
     int avaliable_col = 3, avaliable_row = 7, max_row = 100;
     CTP_PARAM data[][100] = {{-3, -2, -1, 0, 1, 2, 3},
-                             {-3, -2, -1, 0, 1, 2, 3},
-                             {3, 2, 1, 0, -1, -2, -3}};
+                             {-3, -2, -1, 0, 1, 2, 10},
+                             {3, 2, 1, 0, -1, -2, CTP_NULL_VALUE}};
     ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
     // ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
 

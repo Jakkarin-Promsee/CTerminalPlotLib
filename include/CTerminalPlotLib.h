@@ -62,6 +62,11 @@ extern char *CORNER_HZ;
 // 2D Graph Plot assets
 extern int SCREEN_H;
 extern int SCREEN_W;
+extern int BORDER_EDGE;
+extern int Y_SCALE_LENGTH;
+extern int X_SCALE_LENGTH;
+extern int Y_SCALE_MOD;
+extern int X_SCALE_MOD;
 extern int SPACE_FRONT;
 extern int SPACE_BACK;
 
@@ -103,7 +108,7 @@ int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, in
 void ctp_utils_quickSort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
 void ctp_utils_sort_db(DataSet *data);
 void ctp_utils_sort_db_by_y_param(DataSet *data);
-void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[]);
+void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[], double min[], double max[]);
 void ctp_utils_plot_with_space(const char s[], const char space[]);
 void ctp_utils_print_color(const char s[]);
 

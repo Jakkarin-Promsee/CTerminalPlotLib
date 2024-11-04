@@ -63,6 +63,8 @@
     "cterminalplotutils.h": "c",
     "string.h": "c",
     "stdlib.h": "c",
-    "cstdarg": "c"
+    "cstdarg": "c",
+    "limits": "c",
+    "cmath": "c"
   }
 }
