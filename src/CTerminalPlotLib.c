@@ -367,7 +367,6 @@ void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double
     for (int i = 0; i < dataSet->db_cols_size; i++)
     {
         bool isY = (i == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)) ? true : false;
-        printf("\ni:%d %s\n", i, (isY) ? "Y" : "X");
         for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
         {
             if (isY)
@@ -520,8 +519,6 @@ void ctp_plot_scatter(DataSet *dataSet)
     // Normalize scale of X and Y axis by saving on db_cal and recieve min andmax normalize
     ctp_utils_normalizes(dataSet, min_normalize, max_normalize, min, max);
 
-    printf("%lf %lf %lf %lf\n", min[0], max[0], min[1], max[1]);
-    ctp_printf_dataset(dataSet, dataSet->db_cal);
     // Declare iterator to find each point on graph
     int ite = (dataSet->plotProperties->customize_display) ? dataSet->show_end
                                                            : dataSet->db_rows_size;
