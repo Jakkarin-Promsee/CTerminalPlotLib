@@ -71,14 +71,17 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
 
     // Allocate memory for data arrays
     dataset->db = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
+    dataset->db_search = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
     dataset->db_cal = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
     if (!dataset->db || !dataset->db_cal)
         return NULL;
     for (int i = 0; i < max_param; i++)
     {
         dataset->db[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
+        dataset->db_search[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
         dataset->db_cal[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
-        if (!dataset->db[i] || !dataset->db_cal[i])
+
+        if (!dataset->db[i] || !dataset->db_search[i] || !dataset->db_cal[i])
             return NULL;
 
         for (int j = 0; j < max_param_size; j++)
@@ -93,6 +96,7 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     // Initialize other properties
     dataset->db_cols_size = 0;
     dataset->db_rows_size = 0;
+    dataset->db_search_size = 0;
     dataset->chosen_Y_param = 0;
     dataset->chosen_X_param_size = 0;
     dataset->show_begin = 0;
@@ -397,6 +401,70 @@ void ctp_utils_print_color(const char s[])
     printf("%s", s);
 }
 
+// Find function
+void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM compare_number)
+{
+    // Copy db to db_cal
+    ctp_utils_update_db_cal(dataSet);
+
+    int condition_num;
+
+    dataSet->db_search_size = 0;
+    for (int i = 0; i < dataSet->db_rows_size; i++)
+    {
+        if (strcmp(condition, "e") || strcmp(condition, "="))
+        {
+            if (dataSet->db_cal[select_col][i] == compare_number)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                printf("col: %d, row: %d", select_col, i);
+                return;
+            }
+        }
+        else if (strcmp(condition, "lt") || strcmp(condition, "<"))
+        {
+            if (dataSet->db_cal[select_col][i] < compare_number)
+            {
+                printf("col: %d, row: %d", select_col, i);
+                return;
+            }
+        }
+        else if (strcmp(condition, "lte") || strcmp(condition, "<="))
+        {
+            if (dataSet->db_cal[select_col][i] <= compare_number)
+            {
+                printf("col: %d, row: %d", select_col, i);
+                return;
+            }
+        }
+        else if (strcmp(condition, "gt") || strcmp(condition, ">"))
+        {
+            if (dataSet->db_cal[select_col][i] > compare_number)
+            {
+                printf("col: %d, row: %d", select_col, i);
+                return;
+            }
+        }
+        else if (strcmp(condition, "gte") || strcmp(condition, ">="))
+        {
+            if (dataSet->db_cal[select_col][i] >= compare_number)
+            {
+                printf("col: %d, row: %d", select_col, i);
+                return;
+            }
+        }
+        else
+        {
+            printf("missed condition");
+        }
+    }
+}
+
 // Main function
 void ctp_plot(const DataSet *dataSet)
 {
@@ -410,6 +478,8 @@ void ctp_plot(const DataSet *dataSet)
 }
 void ctp_plot_table(const DataSet *dataSet)
 {
+    SetConsoleOutputCP(CP_UTF8);
+    setlocale(LC_ALL, "");
     ctp_plot_table_customize(dataSet, dataSet->db);
 }
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)

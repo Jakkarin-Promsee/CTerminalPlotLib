@@ -24,15 +24,20 @@ int main()
         "group 2"};
     ctp_add_label(dataSet, name, max_name_length, avaliable_name);
 
-    dataSet->plotProperties->customize_display = true;
-    dataSet->chosen_Y_param = 0;
-    dataSet->chosen_X_param_size = 2;
-    dataSet->chosen_X_param[0] = 1;
-    dataSet->chosen_X_param[1] = 2;
-    dataSet->show_begin = 0;
-    dataSet->show_end = 7;
+    // dataSet->plotProperties->customize_display = true;
+    // dataSet->chosen_Y_param = 0;
+    // dataSet->chosen_X_param_size = 2;
+    // dataSet->chosen_X_param[0] = 1;
+    // dataSet->chosen_X_param[1] = 2;
+    // dataSet->show_begin = 0;
+    // dataSet->show_end = 7;
 
-    ctp_plot(dataSet);
+    // ctp_plot(dataSet);
+
+    ctp_plot_table(dataSet);
+
+    ctp_findOne(dataSet, 0, "e", 1);
+    ctp_plot_table_customize(dataSet, dataSet->db_search);
 
     return 0;
 }
