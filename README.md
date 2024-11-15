@@ -18,7 +18,7 @@ Here’s an example of how to set up and use the library:
 
 - ### Initialize the Data Set
     ```c++
-    int max_cols_size = 10, max_name_legth = 20, max_rows_size = 3;
+    int max_cols_size = 3, max_name_legth = 20, max_rows_size = 10;
     DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_legth, max_rows_size);
     ```
     - `max_cols_size`: The maximum number of parameter columns.
