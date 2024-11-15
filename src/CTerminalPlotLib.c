@@ -203,15 +203,33 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
     mem += dataSet->max_param * dataSet->max_name_size * sizeof(char);
 
     // Calculate memory for db and db_sort (2D CTP_PARAM arrays)
-    mem += 2 * (dataSet->max_param * dataSet->max_param_size * sizeof(CTP_PARAM));
+    mem += 3 * (dataSet->max_param * dataSet->max_param_size * sizeof(CTP_PARAM));
+
+    // Calculate customize PlotProperties
+    mem += sizeof(PlotProperties);
 
     // Calculate memory for chosen_X_param (integer array)
     mem += dataSet->max_param * sizeof(int);
 
     // Calculate memory for individual integers
-    mem += 10 * sizeof(int);
+    mem += 12 * sizeof(int);
 
     return mem;
+}
+
+void ctp_printf_memory_usage(const DataSet *dataSet)
+{
+    printf("DataSet uses ");
+    if (sizeof(CTP_PARAM) == sizeof(float))
+        printf("type float ");
+    else if (sizeof(CTP_PARAM) == sizeof(double))
+        printf("type double ");
+    else if (sizeof(CTP_PARAM) == sizeof(long double))
+        printf("type long double ");
+    else
+        printf("an unknown type ");
+    printf("to keep data\n");
+    printf("This DataSet memory usage is %d Bytes\n\n", ctp_get_dataset_memory_usage(dataSet));
 }
 
 // Print DataSet Function - use to show insid variable quickly
@@ -406,15 +424,15 @@ void ctp_utils_print_color(const char s[])
 
 bool isFindOne = false;
 
-void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM compare_number)
+void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM search_value)
 {
     isFindOne = true;
-    ctp_findMany(dataSet, select_col, condition, compare_number);
+    ctp_findMany(dataSet, select_col, condition, search_value);
     isFindOne = false;
 }
 bool isFirstSearch = false;
 // Find function
-void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM compare_number)
+void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM search_value)
 {
     bool const_isFirstSearch = isFirstSearch;
     // Copy db to db_cal
@@ -436,8 +454,6 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
         dataSet->db = temp_db;
         dataSet->db_rows_size = temp_rows_size;
     }
-
-    int condition_num;
 
     char cond_es[5] = "e";
     char cond_ec[5] = "=";
@@ -466,7 +482,7 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
     {
         if (cond_eb)
         {
-            if (dataSet->db_cal[select_col][i] == compare_number)
+            if (dataSet->db_cal[select_col][i] == search_value)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
                 {
@@ -480,7 +496,7 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
         }
         else if (cond_ltb)
         {
-            if (dataSet->db_cal[select_col][i] < compare_number)
+            if (dataSet->db_cal[select_col][i] < search_value)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
                 {
@@ -494,7 +510,7 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
         }
         else if (cond_lteb)
         {
-            if (dataSet->db_cal[select_col][i] <= compare_number)
+            if (dataSet->db_cal[select_col][i] <= search_value)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
                 {
@@ -508,7 +524,7 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
         }
         else if (cond_gtb)
         {
-            if (dataSet->db_cal[select_col][i] > compare_number)
+            if (dataSet->db_cal[select_col][i] > search_value)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
                 {
@@ -522,7 +538,7 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
         }
         else if (cond_gteb)
         {
-            if (dataSet->db_cal[select_col][i] >= compare_number)
+            if (dataSet->db_cal[select_col][i] >= search_value)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
                 {
@@ -551,7 +567,7 @@ void ctp_plot_search(DataSet *dataSet)
     dataSet->db = dataSet->db_search;
     dataSet->db_rows_size = dataSet->db_search_size;
 
-    ctp_printf_properties(dataSet);
+    // ctp_printf_properties(dataSet);
     ctp_plot(dataSet);
 
     dataSet->db = temp_db;
@@ -686,7 +702,6 @@ void ctp_plot_scatter(DataSet *dataSet)
         ctp_utils_sort_db(dataSet);
 
     // Print head of graph
-    printf("\nInitialize Scatter Plot\n");
     printf("%d Plots Total\n", ((dataSet->plotProperties->customize_display) ? dataSet->show_end - dataSet->show_begin : dataSet->db_rows_size));
     printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
 
@@ -872,9 +887,5 @@ void ctp_plot_scatter(DataSet *dataSet)
             x_start += 1;
         }
     }
-    printf("\n");
-
-    for (int x = (int)floor(min_normalize[0]); x < (int)ceil(max_normalize[0]); x++)
-        printf("%d", x);
     printf("\n");
 }

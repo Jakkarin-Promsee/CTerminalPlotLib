@@ -65,6 +65,8 @@
     "stdlib.h": "c",
     "cstdarg": "c",
     "limits": "c",
-    "cmath": "c"
+    "cmath": "c",
+    "windows.h": "c",
+    "locale.h": "c"
   }
 }
