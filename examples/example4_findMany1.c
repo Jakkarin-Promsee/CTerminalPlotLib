@@ -5,7 +5,7 @@
 int main()
 {
     // Initialize the Data Set
-    int max_cols_size = 3, max_name_legth = 20, max_rows_size = 10;
+    int max_cols_size = 4, max_name_legth = 20, max_rows_size = 10;
     DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_legth, max_rows_size);
 
     // Add Data
@@ -19,15 +19,14 @@ int main()
     // Add label
     int available_name = 3, max_name_length = 20;
     // name[][max_name_length]
-    char name[][20] = {
-        "index",   // Column 0 (default y-axis)
-        "group 1", // Column 1 (default x-axis)
-        "group 2"  // Column 2 (default x-axis)
-    };
+    char name[][20] = {"index",    // Column 0 (default y-axis)
+                       "group 1",  // Column 1 (default x-axis)
+                       "group 2"}; // Column 2 (default x-axis)
     ctp_add_label(dataSet, name, max_name_length, available_name);
 
     // Print DataSet properties
-    ctp_plot(dataSet);
+    ctp_findMany(dataSet, 0, "gte", -1);
+    ctp_plot_search(dataSet);
 
     return 0;
 }

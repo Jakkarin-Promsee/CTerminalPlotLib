@@ -42,12 +42,9 @@ Here’s an example of how to set up and use the library:
     ```c++
     int available_name = 3, max_name_length = 20;
     // name[][max_name_length]
-    char name[][20] = {
-        "index",   // Column 0 (default y-axis)
-        "group 1", // Column 1 (default x-axis)
-        "group 2"  // Column 2 (default x-axis)
-    };
-
+    char name[][20] = { "index",   // Column 0 (default y-axis)
+                        "group 1", // Column 1 (default x-axis)
+                        "group 2"};  // Column 2 (default x-axis)
     ctp_add_label(dataSet, name, max_name_length, available_name);
     ```
     - `available_name`: The number of column labels to add to the dataset.
