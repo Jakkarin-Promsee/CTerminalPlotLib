@@ -2,13 +2,13 @@
 `CTerminalPlot` is a lightweight C library designed for **table plotting** and **scatter plotting**  graphs directly in the terminal, using the `CP_UTF8` encoding codepage identifier. This library provides a quick and real-time data visualization solution with a default resolution of 30x90 pixels, which can be scaled up depending on your terminal's capabilities. With syntax similar to `Matplotlib`.
 
 ## Features
-- **Lightweight Design:** Optimized for embedded systems and semi-computer platforms like Arduino and NodeMCU which have less memmory and cpu power.
+- **Lightweight Design:** Optimized for embedded systems and semi-computer platforms like Arduino and NodeMCU which have less memory and cpu power.
 - **Adjustable Data Types:** Supports multiple data types, including `bool` (1 bit), `char` (1 byte), `int` (4 bytes), `float` (8 bytes), and `double` (16 bytes).
 - **Flexible Storage Management:** Using dynamic adjustment of rows, columns, and parameter declarations to optimize memory usage.
 - **Matplotlib-Like Syntax:** Offers a familiar syntax for those accustomed to Python's Matplotlib.
 - **Multi-Parameter Support:** Enables plotting multiple variables simultaneously with automatic and customizable controls. Which variables have diffent color on graph.
 - **Search Function Support:** Have function to search data with multiple parameter.
-- **UTF-8 Encoding:** Displays graphs with graphich and colored lines in the terminal, enhancing readability.
+- **UTF-8 Encoding:** Displays graphs with graphics and colored lines in the terminal, enhancing readability.
 
 <br><br>
 # Getting Started
@@ -79,10 +79,18 @@ Here’s an example of how to set up and use the library:
 
 ## **Getting Search**
 - ### Searching data
+    - ### operator
+        - `e`: Equal (==)
+        - `ne`: Not equal (!=)
+        - `lt`: Less than (<)
+        - `lte`: Less than or equal (<=)
+        - `gt`: Greater than (>)
+        - `gte`: Greater than or equal (>=)
+
     - ### FindOne
         - ### Usage:
             ``` c++
-            void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM search_value)
+            void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
             ```
         - ### Example:
             ``` c++
@@ -93,7 +101,7 @@ Here’s an example of how to set up and use the library:
     - ### FindMany
         - ### Usage:
             ``` c++
-            void ctp_findMany(DataSet *dataSet, int select_col, char condition[], CTP_PARAM search_value)
+            void ctp_findMany(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
             ```
         - ### Example:
             ``` c++

@@ -424,15 +424,15 @@ void ctp_utils_print_color(const char s[])
 
 bool isFindOne = false;
 
-void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM search_value)
+void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
 {
     isFindOne = true;
-    ctp_findMany(dataSet, select_col, condition, search_value);
+    ctp_findMany(dataSet, select_col, operator, search_value);
     isFindOne = false;
 }
 bool isFirstSearch = false;
 // Find function
-void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM search_value)
+void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value)
 {
     bool const_isFirstSearch = isFirstSearch;
     // Copy db to db_cal
@@ -457,23 +457,23 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
 
     char cond_es[5] = "e";
     char cond_ec[5] = "=";
-    bool cond_eb = strcmp(condition, cond_es) == 0 || strcmp(condition, cond_ec) == 0;
+    bool cond_eb = strcmp(operator, cond_es) == 0 || strcmp(operator, cond_ec) == 0;
 
     char cond_lts[5] = "lt";
     char cond_ltc[5] = "<";
-    bool cond_ltb = strcmp(condition, cond_lts) == 0 || strcmp(condition, cond_ltc) == 0;
+    bool cond_ltb = strcmp(operator, cond_lts) == 0 || strcmp(operator, cond_ltc) == 0;
 
     char cond_ltes[5] = "lte";
     char cond_ltec[5] = "<=";
-    bool cond_lteb = strcmp(condition, cond_ltes) == 0 || strcmp(condition, cond_ltec) == 0;
+    bool cond_lteb = strcmp(operator, cond_ltes) == 0 || strcmp(operator, cond_ltec) == 0;
 
     char cond_gts[5] = "gt";
     char cond_gtc[5] = ">";
-    bool cond_gtb = strcmp(condition, cond_gts) == 0 || strcmp(condition, cond_gtc) == 0;
+    bool cond_gtb = strcmp(operator, cond_gts) == 0 || strcmp(operator, cond_gtc) == 0;
 
     char cond_gtes[5] = "gte";
     char cond_gtec[5] = "<";
-    bool cond_gteb = strcmp(condition, cond_gtes) == 0 || strcmp(condition, cond_gtec) == 0;
+    bool cond_gteb = strcmp(operator, cond_gtes) == 0 || strcmp(operator, cond_gtec) == 0;
 
     int const_temp_search_size = dataSet->db_search_size;
     dataSet->db_search_size = 0;

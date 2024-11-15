@@ -4,24 +4,29 @@
 
 int main()
 {
-    // Initialize DataSet variable
-    int max_param = 10, max_name_size = 20, max_param_size = 100;
-    DataSet *dataSet = ctp_initialize_dataset(max_param, max_name_size, max_param_size);
+    // Initialize the Data Set
+    int max_cols_size = 3, max_name_legth = 20, max_rows_size = 10;
+    DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_legth, max_rows_size);
 
-    // Add data into DataSet variable
-    // data index 0 will be Y axis and over 1 will be X axis
-    int avaliable_col = 3, avaliable_row = 6, max_row = 100;
-    CTP_PARAM data[][100] = {{1, 2, 3, 4, 5, 6}, {11, 22, 33, 44, 55, 66}, {15, 2, 42, 53, 62}};
-    ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
-    ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
+    // Add Data
+    int available_cols = 3, available_rows = 7, max_rows = 10;
+    // data[][max_rows]
+    CTP_PARAM data[][10] = {
+        {-3, -2, -1, 0, 1, 2, 3},   // Column 0 (default y-axis)
+        {-3, -2, -1, 0, 1, 2, 10},  // Column 1 (default x-axis)
+        {1.73, 2, 1, 0, -1, -2, -3} // Column 2 (default x-axis)
+    };
+    ctp_add_data(dataSet, data, max_rows, available_cols, available_rows);
 
-    // Add label into DataSet variable
-    int avaliable_name = 3, max_name_length = 20;
+    // Add label
+    int available_name = 3, max_name_length = 20;
+    // name[][max_name_length]
     char name[][20] = {
-        "index",
-        "group 1",
-        "group 2"};
-    ctp_add_label(dataSet, name, max_name_length, avaliable_name);
+        "index",   // Column 0 (default y-axis)
+        "group 1", // Column 1 (default x-axis)
+        "group 2"  // Column 2 (default x-axis)
+    };
+    ctp_add_label(dataSet, name, max_name_length, available_name);
 
     // Print DataSet information
     ctp_printf_properties(dataSet);
