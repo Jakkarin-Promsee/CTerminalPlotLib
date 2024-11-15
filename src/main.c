@@ -37,7 +37,8 @@ int main()
     // ctp_plot_table(dataSet);
 
     // ctp_plot(dataSet);
-    ctp_findMany(dataSet, 0, "gte", -1);
+    ctp_findMany(dataSet, 0, "gte", -2);
+    ctp_findMany(dataSet, 0, "lte", 2);
     ctp_plot_table_search(dataSet);
     ctp_plot_search(dataSet);
 

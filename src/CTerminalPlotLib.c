@@ -412,11 +412,30 @@ void ctp_findOne(DataSet *dataSet, int select_col, char condition[], CTP_PARAM c
     ctp_findMany(dataSet, select_col, condition, compare_number);
     isFindOne = false;
 }
+bool isFirstSearch = false;
 // Find function
 void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM compare_number)
 {
+    bool const_isFirstSearch = isFirstSearch;
     // Copy db to db_cal
-    ctp_utils_update_db_cal(dataSet);
+    if (!const_isFirstSearch)
+    {
+        isFirstSearch = true;
+        ctp_utils_update_db_cal(dataSet);
+    }
+    else
+    {
+        CTP_PARAM **temp_db = dataSet->db;
+        int temp_rows_size = dataSet->db_rows_size;
+
+        dataSet->db = dataSet->db_search;
+        dataSet->db_rows_size = dataSet->db_search_size;
+
+        ctp_utils_update_db_cal(dataSet);
+
+        dataSet->db = temp_db;
+        dataSet->db_rows_size = temp_rows_size;
+    }
 
     int condition_num;
 
@@ -440,12 +459,13 @@ void ctp_findMany(DataSet *dataSet, int select_col, char condition[5], CTP_PARAM
     char cond_gtec[5] = "<";
     bool cond_gteb = strcmp(condition, cond_gtes) == 0 || strcmp(condition, cond_gtec) == 0;
 
+    int const_temp_search_size = dataSet->db_search_size;
     dataSet->db_search_size = 0;
-    for (int i = 0; i < dataSet->db_rows_size; i++)
+
+    for (int i = 0; i < ((!const_isFirstSearch) ? dataSet->db_rows_size : const_temp_search_size); i++)
     {
         if (cond_eb)
         {
-            printf("I catch you");
             if (dataSet->db_cal[select_col][i] == compare_number)
             {
                 for (int j = 0; j < dataSet->db_cols_size; j++)
@@ -772,6 +792,7 @@ void ctp_plot_scatter(DataSet *dataSet)
             {
                 if (overlapped - col_stack == 0)
                 {
+                    col_overlapped %= 3;
                     if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
                         ctp_utils_print_color(COLOR_RED);
                     else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1)
