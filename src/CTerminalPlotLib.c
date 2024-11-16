@@ -152,6 +152,20 @@ void ctp_free_dataset(DataSet *dataset)
 }
 
 // Manage DataSet Function - use to manage value of inside variable
+void ctp_add_row(DataSet *dataSet, CTP_PARAM data[])
+{
+    if (dataSet->db_rows_size + 1 > dataSet->max_param_size)
+    {
+        fprintf(stderr, "Invalid parameters provided to ctp_addData\n");
+        return;
+    }
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+    {
+        dataSet->db[i][dataSet->db_rows_size] = (CTP_PARAM)(data[i]);
+    }
+    dataSet->db_rows_size++;
+}
 void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row)
 {
     // Check if the input parameters are valid
