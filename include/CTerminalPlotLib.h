@@ -95,13 +95,15 @@ PlotProperties *ctp_initialize_plotproperties();
 void ctp_free_dataset(DataSet *dataset);
 
 // Manage DataSet Function - use to manage value of inside variable
+void ctp_add_row(DataSet *dataSet, CTP_PARAM data[]);
 void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
 void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
 int ctp_get_dataset_memory_usage(const DataSet *dataSet);
 
 // Print DataSet Function - use to show insid variable quickly
-void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
+void ctp_printf_memory_usage(const DataSet *dataSet);
 void ctp_printf_properties(const DataSet *dataSet);
+void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
 
 // Utils Function
 void ctp_utils_update_db_cal(DataSet *data);
