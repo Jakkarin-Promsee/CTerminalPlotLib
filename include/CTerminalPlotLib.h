@@ -115,9 +115,10 @@ void ctp_utils_plot_with_space(const char s[], const char space[]);
 void ctp_utils_print_color(const char s[]);
 
 // Main Function
-void ctp_plot(const DataSet *dataSet);
+void ctp_plot(DataSet *dataSet);
 void ctp_plot_table(const DataSet *dataSet);
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db);
 void ctp_plot_scatter(DataSet *dataSet);
+void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value);
 
 #endif

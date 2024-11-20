@@ -13,7 +13,7 @@ int main()
     CTP_PARAM data[][10] = {{-3, -2, -1, 0, 1, 2, 3},
                             {-3, -2, -1, 0, 1, 2, 10},
                             {3, 2, 1, 0, -1, -2, -3}};
-    ctp_add_data(dataSet, data, max_row, avaliable_col, avaliable_row);
+    ctp_add_data(dataSet, *data, max_row, avaliable_col, avaliable_row);
 
     CTP_PARAM new_row[3] = {4, 4, 4};
     ctp_add_row(dataSet, new_row);
@@ -24,7 +24,7 @@ int main()
         "index",
         "group 1",
         "group 2"};
-    ctp_add_label(dataSet, name, max_name_length, avaliable_name);
+    ctp_add_label(dataSet, *name, max_name_length, avaliable_name);
 
     // ctp_printf_properties(dataSet);
     // ctp_plot(dataSet);

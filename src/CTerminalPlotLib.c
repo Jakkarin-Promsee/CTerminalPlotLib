@@ -587,7 +587,7 @@ void ctp_plot_search(DataSet *dataSet)
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_rows_size;
 }
-void ctp_plot(const DataSet *dataSet)
+void ctp_plot(DataSet *dataSet)
 {
     SetConsoleOutputCP(CP_UTF8);
     setlocale(LC_ALL, "");

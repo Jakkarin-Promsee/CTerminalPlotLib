@@ -32,7 +32,7 @@ Here’s an example of how to set up and use the library:
     CTP_PARAM data[][10] = {{-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
                             {-3, -2, -1, 0, 1, 2, 10}, // Column 1 (default x-axis)
                             {3, 2, 1, 0, -1, -2, -3}}; // Column 2 (default x-axis)
-    ctp_add_data(dataSet, data, max_rows, available_cols, available_rows);
+    ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
     ```
     - `available_cols`: The number of columns to add to the dataset.
     - `available_rows`: The number of rows to add to the dataset.
@@ -45,7 +45,7 @@ Here’s an example of how to set up and use the library:
     char name[][20] = { "index",   // Column 0 (default y-axis)
                         "group 1", // Column 1 (default x-axis)
                         "group 2"};  // Column 2 (default x-axis)
-    ctp_add_label(dataSet, name, max_name_length, available_name);
+    ctp_add_label(dataSet, *name, max_name_length, available_name);
     ```
     - `available_name`: The number of column labels to add to the dataset.
     - `max_name_length`: The maximum length of each label (used to determine the size of the name array).
