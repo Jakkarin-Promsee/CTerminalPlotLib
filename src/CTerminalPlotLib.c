@@ -668,14 +668,37 @@ void ctp_plot_table_search(DataSet *dataSet)
 }
 void ctp_plot_table(const DataSet *dataSet)
 {
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
     ctp_plot_table_customize(dataSet, dataSet->db);
 }
+void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st)
+{
+    CTP_PARAM **_ = (CTP_PARAM **)malloc(dataSet->db_cols_size * sizeof(CTP_PARAM *));
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+    {
+        _[i] = malloc(sizeof(CTP_PARAM));
+        _[i][0] = st[i];
+    }
+
+    int row_temp = dataSet->db_rows_size;
+    dataSet->db_rows_size = 1;
+
+    ctp_plot_table_customize(dataSet, _);
+
+    dataSet->db_rows_size = row_temp;
+    free(_);
+}
+
+bool print_plot_total = true;
+
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
+    SetConsoleOutputCP(CP_UTF8);
+    setlocale(LC_ALL, "");
+
     // Print header
-    printf("%d Plots Total\n", (dataSet->plotProperties->customize_display) ? (dataSet->show_end - dataSet->show_begin) : dataSet->db_rows_size);
+    if (print_plot_total)
+        printf("%d Plots Total\n", (dataSet->plotProperties->customize_display) ? (dataSet->show_end - dataSet->show_begin) : dataSet->db_rows_size);
 
     // Top Line
     printf("%s", CORNER_TL);
@@ -769,8 +792,11 @@ void ctp_plot_scatter(DataSet *dataSet)
         ctp_utils_sort_db(dataSet);
 
     // Print head of graph
-    printf("%d Plots Total\n", ((dataSet->plotProperties->customize_display) ? dataSet->show_end - dataSet->show_begin : dataSet->db_rows_size));
-    printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
+    if (print_plot_total)
+    {
+        printf("%d Plots Total\n", ((dataSet->plotProperties->customize_display) ? dataSet->show_end - dataSet->show_begin : dataSet->db_rows_size));
+        printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
+    }
 
     // Find min and max of X and Y axis (0 : x, 1 : y)
     CTP_PARAM min_normalize[2], max_normalize[2], min[2], max[2];
@@ -955,4 +981,72 @@ void ctp_plot_scatter(DataSet *dataSet)
         }
     }
     printf("\n");
+}
+
+CTP_PARAM *ctp_analyze_mean(DataSet *dataSet)
+{
+    CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        mean[i] = 0;
+
+    int *n = calloc(dataSet->db_cols_size, sizeof(int));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        for (int j = 0; j < dataSet->db_rows_size; j++)
+            if (dataSet->db[i][j] != CTP_NULL_VALUE)
+            {
+                mean[i] += dataSet->db[i][j];
+                n[i]++;
+            }
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        if (n[i] != 0)
+            mean[i] /= n[i];
+
+    return mean;
+}
+
+CTP_PARAM *ctp_analyze_sd(DataSet *dataSet)
+{
+    CTP_PARAM *mean = ctp_analyze_mean(dataSet);
+    CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        sd[i] = 0;
+
+    int *n = calloc(dataSet->db_cols_size, sizeof(int));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        for (int j = 0; j < dataSet->db_rows_size; j++)
+            if (dataSet->db[i][j] != CTP_NULL_VALUE)
+            {
+                sd[i] += pow(dataSet->db[i][j] - mean[i], 2);
+                n[i]++;
+            }
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        if (n[i] != 0)
+            sd[i] /= n[i];
+
+    return sd;
+}
+
+CTP_PARAM *ctp_analyze_md(DataSet *dataSet)
+{
+    CTP_PARAM *mean = ctp_analyze_mean(dataSet);
+    CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        sd[i] = 0;
+
+    int *n = calloc(dataSet->db_cols_size, sizeof(int));
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        for (int j = 0; j < dataSet->db_rows_size; j++)
+            if (dataSet->db[i][j] != CTP_NULL_VALUE)
+            {
+                sd[i] += abs(dataSet->db[i][j] - mean[i]);
+                n[i]++;
+            }
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        if (n[i] != 0)
+            sd[i] /= n[i];
+
+    return sd;
 }

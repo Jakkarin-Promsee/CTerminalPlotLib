@@ -32,6 +32,14 @@ int main()
     // ctp_plot(dataSet);
 
     // ctp_plot_table(dataSet);
+    CTP_PARAM *mean = ctp_analyze_md(dataSet);
+    // for (int i = 0; i < dataSet->db_cols_size; i++)
+    //     printf("%lf\t", mean[i]);
+    // printf("\n");
+    // dataSet->db_rows_size = 1;
+    // ctp_plot_table_customize(dataSet, mean);
+    print_plot_total = false;
+    ctp_plot_analyze(dataSet, mean);
     ctp_plot(dataSet);
 
     // ctp_findMany(dataSet, 0, "gte", -1);
