@@ -689,7 +689,7 @@ void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st)
     free(_);
 }
 
-bool print_plot_total = true;
+bool print_plot_total = false;
 
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
