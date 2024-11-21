@@ -44,6 +44,45 @@ char *COLOR_BLUE = "\033[1;34m";
 char *COLOR_YELLOW = "\033[1;33m";
 char *COLOR_MAGENTA = "\033[1;35m";
 
+void ctp_set_table_reset_default()
+{
+}
+
+void ctp_set_graph_reset_default()
+{
+}
+
+void ctp_set_table_backspace(int new_backspace)
+{
+    BACK_SPACE = new_backspace;
+}
+
+void ctp_set_table_width(int new_width)
+{
+    TABLE_WIDTH = new_width;
+}
+
+void ctp_set_graph_resolution(int _SCREEN_H, int _SCREEN_W)
+{
+    SCREEN_H = _SCREEN_H;
+    SCREEN_W = _SCREEN_W;
+}
+
+void ctp_set_graph_border(int new_border)
+{
+    BORDER_EDGE = new_border;
+}
+
+void ctp_set_grap_point_x(char new_point)
+{
+    *POINT_SINGLE = new_point;
+}
+
+void ctp_set_grap_point_overlapped(char new_point)
+{
+    *POINT_OVERLAPPED = new_point;
+}
+
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size)
 {
@@ -587,6 +626,20 @@ void ctp_plot_search(DataSet *dataSet)
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_rows_size;
 }
+void ctp_plot_scatter_search(DataSet *dataSet)
+{
+    CTP_PARAM **temp_db = dataSet->db;
+    int temp_rows_size = dataSet->db_rows_size;
+
+    dataSet->db = dataSet->db_search;
+    dataSet->db_rows_size = dataSet->db_search_size;
+
+    // ctp_printf_properties(dataSet);
+    ctp_plot_scatter(dataSet);
+
+    dataSet->db = temp_db;
+    dataSet->db_rows_size = temp_rows_size;
+}
 void ctp_plot(DataSet *dataSet)
 {
     SetConsoleOutputCP(CP_UTF8);
@@ -821,7 +874,7 @@ void ctp_plot_scatter(DataSet *dataSet)
             {
                 if (overlapped - col_stack == 0)
                 {
-                    col_overlapped %= 3;
+                    col_overlapped %= 4;
                     if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
                         ctp_utils_print_color(COLOR_RED);
                     else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1)
