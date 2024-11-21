@@ -62,7 +62,7 @@ void ctp_set_table_width(int new_width)
     TABLE_WIDTH = new_width;
 }
 
-void ctp_set_graph_resolution(int _SCREEN_H, int _SCREEN_W)
+void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H)
 {
     SCREEN_H = _SCREEN_H;
     SCREEN_W = _SCREEN_W;
