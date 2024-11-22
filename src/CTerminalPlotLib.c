@@ -889,6 +889,10 @@ void ctp_sort_search(DataSet *data)
 // Search Function - use to filter all data
 bool isFindOne = false;
 bool isFirstSearch = false;
+voit ctp_reset_find()
+{
+    isFirstSearch = false;
+}
 void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
 {
     isFindOne = true;
