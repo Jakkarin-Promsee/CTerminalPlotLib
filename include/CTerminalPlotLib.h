@@ -89,6 +89,17 @@ extern char *COLOR_BLUE;
 extern char *COLOR_YELLOW;
 extern char *COLOR_MAGENTA;
 
+// Setting Plot Function - use to setting table and scatter plot properties
+void ctp_set_table_reset_default();
+void ctp_set_graph_reset_default();
+void ctp_set_reset_default();
+void ctp_set_table_backspace(int new_backspace);
+void ctp_set_table_width(int new_width);
+void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H);
+void ctp_set_graph_border(int new_border);
+void ctp_set_grap_point_x(char new_point);
+void ctp_set_grap_point_overlapped(char new_point);
+
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
 PlotProperties *ctp_initialize_plotproperties();
@@ -105,7 +116,7 @@ void ctp_printf_memory_usage(const DataSet *dataSet);
 void ctp_printf_properties(const DataSet *dataSet);
 void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
 
-// Utils Function
+// Utils Function - use to calculate table and graph
 void ctp_utils_update_db_cal(DataSet *data);
 void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b);
 int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
@@ -116,11 +127,25 @@ void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double
 void ctp_utils_plot_with_space(const char s[], const char space[]);
 void ctp_utils_print_color(const char s[]);
 
-// Main Function
+// Main Function - (user call) use to handle table and scatter plot
 void ctp_plot(DataSet *dataSet);
+void ctp_plot_search(DataSet *dataSet);
+void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st);
 void ctp_plot_table(const DataSet *dataSet);
+void ctp_plot_table_search(DataSet *dataSet);
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db);
 void ctp_plot_scatter(DataSet *dataSet);
+void ctp_plot_scatter_search(DataSet *dataSet);
+
+// Sort Function - use to sort all data
+
+// Search Function - use to filter all data
+void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value);
 void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value);
+
+// Analyze Function - use to analyze all data
+CTP_PARAM *ctp_analyze_mean(DataSet *dataSet);
+CTP_PARAM *ctp_analyze_sd(DataSet *dataSet);
+CTP_PARAM *ctp_analyze_md(DataSet *dataSet);
 
 #endif

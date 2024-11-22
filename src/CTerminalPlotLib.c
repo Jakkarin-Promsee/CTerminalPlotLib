@@ -49,26 +49,24 @@ bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
 int *DEFAULT_SAVE_POINTER[5];
 int DEFAULT_SAVE_VALUE[5];
 
+// Setting Plot Function - use to setting table and scatter plot properties
 void ctp_set_table_reset_default()
 {
     for (int i = 0; i < 2; i++)
         if (DEFAULT_SAVE_BOOL[i])
             *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
 }
-
 void ctp_set_graph_reset_default()
 {
     for (int i = 2; i < 5; i++)
         if (DEFAULT_SAVE_BOOL[i])
             *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
 }
-
 void ctp_set_reset_default()
 {
     ctp_set_graph_reset_default();
     ctp_set_table_reset_default();
 }
-
 void ctp_set_table_backspace(int new_backspace)
 {
     BACK_SPACE = new_backspace;
@@ -76,7 +74,6 @@ void ctp_set_table_backspace(int new_backspace)
     DEFAULT_SAVE_POINTER[0] = &BACK_SPACE;
     DEFAULT_SAVE_VALUE[0] = BACK_SPACE;
 }
-
 void ctp_set_table_width(int new_width)
 {
     TABLE_WIDTH = new_width;
@@ -84,7 +81,6 @@ void ctp_set_table_width(int new_width)
     DEFAULT_SAVE_POINTER[1] = &TABLE_WIDTH;
     DEFAULT_SAVE_VALUE[1] = TABLE_WIDTH;
 }
-
 void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H)
 {
     SCREEN_H = _SCREEN_H;
@@ -95,7 +91,6 @@ void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H)
     DEFAULT_SAVE_POINTER[3] = &SCREEN_W;
     DEFAULT_SAVE_VALUE[3] = SCREEN_W;
 }
-
 void ctp_set_graph_border(int new_border)
 {
     BORDER_EDGE = new_border;
@@ -103,12 +98,10 @@ void ctp_set_graph_border(int new_border)
     DEFAULT_SAVE_POINTER[4] = &BORDER_EDGE;
     DEFAULT_SAVE_VALUE[4] = BORDER_EDGE;
 }
-
 void ctp_set_grap_point_x(char new_point)
 {
     *POINT_SINGLE = new_point;
 }
-
 void ctp_set_grap_point_overlapped(char new_point)
 {
     *POINT_OVERLAPPED = new_point;
@@ -301,6 +294,7 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
     return mem;
 }
 
+// Print DataSet Function - use to show insid variable quickly
 void ctp_printf_memory_usage(const DataSet *dataSet)
 {
     printf("DataSet uses ");
@@ -315,8 +309,6 @@ void ctp_printf_memory_usage(const DataSet *dataSet)
     printf("to keep data\n");
     printf("This DataSet memory usage is %d Bytes\n\n", ctp_get_dataset_memory_usage(dataSet));
 }
-
-// Print DataSet Function - use to show insid variable quickly
 void ctp_printf_properties(const DataSet *dataSet)
 {
     printf("DataSet uses ");
@@ -368,7 +360,7 @@ void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db)
     }
 }
 
-// Utils function
+// Utils Function - use to calculate table and graph
 void ctp_utils_update_db_cal(DataSet *data)
 {
     for (int i = 0; i < data->db_rows_size; i++)
@@ -506,143 +498,18 @@ void ctp_utils_print_color(const char s[])
     printf("%s", s);
 }
 
-bool isFindOne = false;
-
-void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
+// Main Function - (user call) use to handle table and scatter plot
+bool print_plot_total = false;
+void ctp_plot(DataSet *dataSet)
 {
-    isFindOne = true;
-    ctp_findMany(dataSet, select_col, operator, search_value);
-    isFindOne = false;
+    SetConsoleOutputCP(CP_UTF8);
+    setlocale(LC_ALL, "");
+
+    if (dataSet->plotProperties->table_plot)
+        ctp_plot_table(dataSet);
+    if (dataSet->plotProperties->line_plot)
+        ctp_plot_scatter(dataSet);
 }
-bool isFirstSearch = false;
-// Find function
-void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value)
-{
-    bool const_isFirstSearch = isFirstSearch;
-    // Copy db to db_cal
-    if (!const_isFirstSearch)
-    {
-        isFirstSearch = true;
-        ctp_utils_update_db_cal(dataSet);
-    }
-    else
-    {
-        CTP_PARAM **temp_db = dataSet->db;
-        int temp_rows_size = dataSet->db_rows_size;
-
-        dataSet->db = dataSet->db_search;
-        dataSet->db_rows_size = dataSet->db_search_size;
-
-        ctp_utils_update_db_cal(dataSet);
-
-        dataSet->db = temp_db;
-        dataSet->db_rows_size = temp_rows_size;
-    }
-
-    char cond_es[5] = "e";
-    char cond_ec[5] = "=";
-    bool cond_eb = strcmp(operator, cond_es) == 0 || strcmp(operator, cond_ec) == 0;
-
-    char cond_lts[5] = "lt";
-    char cond_ltc[5] = "<";
-    bool cond_ltb = strcmp(operator, cond_lts) == 0 || strcmp(operator, cond_ltc) == 0;
-
-    char cond_ltes[5] = "lte";
-    char cond_ltec[5] = "<=";
-    bool cond_lteb = strcmp(operator, cond_ltes) == 0 || strcmp(operator, cond_ltec) == 0;
-
-    char cond_gts[5] = "gt";
-    char cond_gtc[5] = ">";
-    bool cond_gtb = strcmp(operator, cond_gts) == 0 || strcmp(operator, cond_gtc) == 0;
-
-    char cond_gtes[5] = "gte";
-    char cond_gtec[5] = "<";
-    bool cond_gteb = strcmp(operator, cond_gtes) == 0 || strcmp(operator, cond_gtec) == 0;
-
-    int const_temp_search_size = dataSet->db_search_size;
-    dataSet->db_search_size = 0;
-
-    for (int i = 0; i < ((!const_isFirstSearch) ? dataSet->db_rows_size : const_temp_search_size); i++)
-    {
-        if (cond_eb)
-        {
-            if (dataSet->db_cal[select_col][i] == search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_ltb)
-        {
-            if (dataSet->db_cal[select_col][i] < search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_lteb)
-        {
-            if (dataSet->db_cal[select_col][i] <= search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_gtb)
-        {
-            if (dataSet->db_cal[select_col][i] > search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_gteb)
-        {
-            if (dataSet->db_cal[select_col][i] >= search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else
-        {
-            printf("missed condition");
-            return;
-        }
-    }
-}
-
-// Main function
 void ctp_plot_search(DataSet *dataSet)
 {
     CTP_PARAM **temp_db = dataSet->db;
@@ -656,50 +523,6 @@ void ctp_plot_search(DataSet *dataSet)
 
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_rows_size;
-}
-void ctp_plot_scatter_search(DataSet *dataSet)
-{
-    CTP_PARAM **temp_db = dataSet->db;
-    int temp_rows_size = dataSet->db_rows_size;
-
-    dataSet->db = dataSet->db_search;
-    dataSet->db_rows_size = dataSet->db_search_size;
-
-    // ctp_printf_properties(dataSet);
-    ctp_plot_scatter(dataSet);
-
-    dataSet->db = temp_db;
-    dataSet->db_rows_size = temp_rows_size;
-}
-void ctp_plot(DataSet *dataSet)
-{
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
-
-    if (dataSet->plotProperties->table_plot)
-        ctp_plot_table(dataSet);
-    if (dataSet->plotProperties->line_plot)
-        ctp_plot_scatter(dataSet);
-}
-void ctp_plot_table_search(DataSet *dataSet)
-{
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
-    bool temp_customize = dataSet->plotProperties->customize_display;
-    int temp_rows_size = dataSet->db_rows_size;
-
-    dataSet->plotProperties->customize_display = false;
-    dataSet->db_rows_size = dataSet->db_search_size;
-
-    printf("Search Found: %d data\n", dataSet->db_search_size);
-    ctp_plot_table_customize(dataSet, dataSet->db_search);
-
-    dataSet->plotProperties->customize_display = temp_customize;
-    dataSet->db_rows_size = temp_rows_size;
-}
-void ctp_plot_table(const DataSet *dataSet)
-{
-    ctp_plot_table_customize(dataSet, dataSet->db);
 }
 void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st)
 {
@@ -720,8 +543,26 @@ void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st)
     free(_);
 }
 
-bool print_plot_total = false;
+void ctp_plot_table(const DataSet *dataSet)
+{
+    ctp_plot_table_customize(dataSet, dataSet->db);
+}
+void ctp_plot_table_search(DataSet *dataSet)
+{
+    SetConsoleOutputCP(CP_UTF8);
+    setlocale(LC_ALL, "");
+    bool temp_customize = dataSet->plotProperties->customize_display;
+    int temp_rows_size = dataSet->db_rows_size;
 
+    dataSet->plotProperties->customize_display = false;
+    dataSet->db_rows_size = dataSet->db_search_size;
+
+    printf("Search Found: %d data\n", dataSet->db_search_size);
+    ctp_plot_table_customize(dataSet, dataSet->db_search);
+
+    dataSet->plotProperties->customize_display = temp_customize;
+    dataSet->db_rows_size = temp_rows_size;
+}
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
     SetConsoleOutputCP(CP_UTF8);
@@ -811,6 +652,7 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
     printf("%s", CORNER_BR);
     printf("\n");
 }
+
 void ctp_plot_scatter(DataSet *dataSet)
 {
     // Copy db to db_cal
@@ -1013,7 +855,159 @@ void ctp_plot_scatter(DataSet *dataSet)
     }
     printf("\n");
 }
+void ctp_plot_scatter_search(DataSet *dataSet)
+{
+    CTP_PARAM **temp_db = dataSet->db;
+    int temp_rows_size = dataSet->db_rows_size;
 
+    dataSet->db = dataSet->db_search;
+    dataSet->db_rows_size = dataSet->db_search_size;
+
+    // ctp_printf_properties(dataSet);
+    ctp_plot_scatter(dataSet);
+
+    dataSet->db = temp_db;
+    dataSet->db_rows_size = temp_rows_size;
+}
+
+// Sort Function - use to sort all data
+
+// Search Function - use to filter all data
+bool isFindOne = false;
+bool isFirstSearch = false;
+void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
+{
+    isFindOne = true;
+    ctp_findMany(dataSet, select_col, operator, search_value);
+    isFindOne = false;
+}
+void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value)
+{
+    bool const_isFirstSearch = isFirstSearch;
+    // Copy db to db_cal
+    if (!const_isFirstSearch)
+    {
+        isFirstSearch = true;
+        ctp_utils_update_db_cal(dataSet);
+    }
+    else
+    {
+        CTP_PARAM **temp_db = dataSet->db;
+        int temp_rows_size = dataSet->db_rows_size;
+
+        dataSet->db = dataSet->db_search;
+        dataSet->db_rows_size = dataSet->db_search_size;
+
+        ctp_utils_update_db_cal(dataSet);
+
+        dataSet->db = temp_db;
+        dataSet->db_rows_size = temp_rows_size;
+    }
+
+    char cond_es[5] = "e";
+    char cond_ec[5] = "=";
+    bool cond_eb = strcmp(operator, cond_es) == 0 || strcmp(operator, cond_ec) == 0;
+
+    char cond_lts[5] = "lt";
+    char cond_ltc[5] = "<";
+    bool cond_ltb = strcmp(operator, cond_lts) == 0 || strcmp(operator, cond_ltc) == 0;
+
+    char cond_ltes[5] = "lte";
+    char cond_ltec[5] = "<=";
+    bool cond_lteb = strcmp(operator, cond_ltes) == 0 || strcmp(operator, cond_ltec) == 0;
+
+    char cond_gts[5] = "gt";
+    char cond_gtc[5] = ">";
+    bool cond_gtb = strcmp(operator, cond_gts) == 0 || strcmp(operator, cond_gtc) == 0;
+
+    char cond_gtes[5] = "gte";
+    char cond_gtec[5] = "<";
+    bool cond_gteb = strcmp(operator, cond_gtes) == 0 || strcmp(operator, cond_gtec) == 0;
+
+    int const_temp_search_size = dataSet->db_search_size;
+    dataSet->db_search_size = 0;
+
+    for (int i = 0; i < ((!const_isFirstSearch) ? dataSet->db_rows_size : const_temp_search_size); i++)
+    {
+        if (cond_eb)
+        {
+            if (dataSet->db_cal[select_col][i] == search_value)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                if (isFindOne)
+                    return;
+            }
+        }
+        else if (cond_ltb)
+        {
+            if (dataSet->db_cal[select_col][i] < search_value)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                if (isFindOne)
+                    return;
+            }
+        }
+        else if (cond_lteb)
+        {
+            if (dataSet->db_cal[select_col][i] <= search_value)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                if (isFindOne)
+                    return;
+            }
+        }
+        else if (cond_gtb)
+        {
+            if (dataSet->db_cal[select_col][i] > search_value)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                if (isFindOne)
+                    return;
+            }
+        }
+        else if (cond_gteb)
+        {
+            if (dataSet->db_cal[select_col][i] >= search_value)
+            {
+                for (int j = 0; j < dataSet->db_cols_size; j++)
+                {
+                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+                }
+                dataSet->db_search_size++;
+
+                if (isFindOne)
+                    return;
+            }
+        }
+        else
+        {
+            printf("missed condition");
+            return;
+        }
+    }
+}
+
+// Analyze Function - use to analyze all data
 CTP_PARAM *ctp_analyze_mean(DataSet *dataSet)
 {
     CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
@@ -1035,7 +1029,6 @@ CTP_PARAM *ctp_analyze_mean(DataSet *dataSet)
 
     return mean;
 }
-
 CTP_PARAM *ctp_analyze_sd(DataSet *dataSet)
 {
     CTP_PARAM *mean = ctp_analyze_mean(dataSet);
@@ -1058,7 +1051,6 @@ CTP_PARAM *ctp_analyze_sd(DataSet *dataSet)
 
     return sd;
 }
-
 CTP_PARAM *ctp_analyze_md(DataSet *dataSet)
 {
     CTP_PARAM *mean = ctp_analyze_mean(dataSet);
@@ -1080,4 +1072,44 @@ CTP_PARAM *ctp_analyze_md(DataSet *dataSet)
             sd[i] /= n[i];
 
     return sd;
+}
+
+CTP_PARAM *ctp_analyze_mean_search(DataSet *dataSet)
+{
+    CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+
+    CTP_PARAM **temp_db = dataSet->db;
+    dataSet->db = dataSet->db_search;
+
+    mean = ctp_analyze_mean(dataSet);
+
+    dataSet->db = temp_db;
+
+    return mean;
+}
+CTP_PARAM *ctp_analyze_sd_search(DataSet *dataSet)
+{
+    CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+
+    CTP_PARAM **temp_db = dataSet->db;
+    dataSet->db = dataSet->db_search;
+
+    sd = ctp_analyze_sd(dataSet);
+
+    dataSet->db = temp_db;
+
+    return sd;
+}
+CTP_PARAM *ctp_analyze_md_search(DataSet *dataSet)
+{
+    CTP_PARAM *md = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
+
+    CTP_PARAM **temp_db = dataSet->db;
+    dataSet->db = dataSet->db_search;
+
+    md = ctp_analyze_sd(dataSet);
+
+    dataSet->db = temp_db;
+
+    return md;
 }
