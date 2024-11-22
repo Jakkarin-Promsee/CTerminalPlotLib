@@ -142,7 +142,7 @@ void ctp_sort(DataSet *data);
 void ctp_sort_search(DataSet *data);
 
 // Search Function - use to filter all data
-voit ctp_reset_find();
+void ctp_reset_find();
 void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value);
 void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value);
 

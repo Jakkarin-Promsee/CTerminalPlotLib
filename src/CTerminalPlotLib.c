@@ -889,7 +889,7 @@ void ctp_sort_search(DataSet *data)
 // Search Function - use to filter all data
 bool isFindOne = false;
 bool isFirstSearch = false;
-voit ctp_reset_find()
+void ctp_reset_find()
 {
     isFirstSearch = false;
 }
