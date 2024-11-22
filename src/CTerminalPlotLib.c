@@ -871,6 +871,20 @@ void ctp_plot_scatter_search(DataSet *dataSet)
 }
 
 // Sort Function - use to sort all data
+void ctp_sort(DataSet *data)
+{
+    if (data->plotProperties->customize_display)
+        ctp_utils_quicksort(data->db, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
+    else
+        ctp_utils_quicksort(data->db, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
+}
+void ctp_sort_search(DataSet *data)
+{
+    if (data->plotProperties->customize_display)
+        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
+    else
+        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
+}
 
 // Search Function - use to filter all data
 bool isFindOne = false;
