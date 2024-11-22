@@ -44,33 +44,64 @@ char *COLOR_BLUE = "\033[1;34m";
 char *COLOR_YELLOW = "\033[1;33m";
 char *COLOR_MAGENTA = "\033[1;35m";
 
+// BACK_SPACE | TABLE_WIDTH | SCREEN_H | SCREEN_W | BORDER_EDGE
+bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
+int *DEFAULT_SAVE_POINTER[5];
+int DEFAULT_SAVE_VALUE[5];
+
 void ctp_set_table_reset_default()
 {
+    for (int i = 0; i < 2; i++)
+        if (DEFAULT_SAVE_BOOL[i])
+            *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
 }
 
 void ctp_set_graph_reset_default()
 {
+    for (int i = 2; i < 5; i++)
+        if (DEFAULT_SAVE_BOOL[i])
+            *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
+}
+
+void ctp_set_reset_default()
+{
+    ctp_set_graph_reset_default();
+    ctp_set_table_reset_default();
 }
 
 void ctp_set_table_backspace(int new_backspace)
 {
     BACK_SPACE = new_backspace;
+
+    DEFAULT_SAVE_POINTER[0] = &BACK_SPACE;
+    DEFAULT_SAVE_VALUE[0] = BACK_SPACE;
 }
 
 void ctp_set_table_width(int new_width)
 {
     TABLE_WIDTH = new_width;
+
+    DEFAULT_SAVE_POINTER[1] = &TABLE_WIDTH;
+    DEFAULT_SAVE_VALUE[1] = TABLE_WIDTH;
 }
 
 void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H)
 {
     SCREEN_H = _SCREEN_H;
     SCREEN_W = _SCREEN_W;
+
+    DEFAULT_SAVE_POINTER[2] = &SCREEN_H;
+    DEFAULT_SAVE_VALUE[2] = SCREEN_H;
+    DEFAULT_SAVE_POINTER[3] = &SCREEN_W;
+    DEFAULT_SAVE_VALUE[3] = SCREEN_W;
 }
 
 void ctp_set_graph_border(int new_border)
 {
     BORDER_EDGE = new_border;
+
+    DEFAULT_SAVE_POINTER[4] = &BORDER_EDGE;
+    DEFAULT_SAVE_VALUE[4] = BORDER_EDGE;
 }
 
 void ctp_set_grap_point_x(char new_point)
