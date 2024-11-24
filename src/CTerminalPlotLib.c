@@ -1091,11 +1091,14 @@ CTP_PARAM *ctp_analyze_mean_search(DataSet *dataSet)
     CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
 
     CTP_PARAM **temp_db = dataSet->db;
+    int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
+    dataSet->db_rows_size = dataSet->db_search_size;
 
     mean = ctp_analyze_mean(dataSet);
 
     dataSet->db = temp_db;
+    dataSet->db_rows_size = temp_row;
 
     return mean;
 }
@@ -1104,11 +1107,14 @@ CTP_PARAM *ctp_analyze_sd_search(DataSet *dataSet)
     CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
 
     CTP_PARAM **temp_db = dataSet->db;
+    int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
+    dataSet->db_rows_size = dataSet->db_search_size;
 
     sd = ctp_analyze_sd(dataSet);
 
     dataSet->db = temp_db;
+    dataSet->db_rows_size = temp_row;
 
     return sd;
 }
@@ -1117,11 +1123,14 @@ CTP_PARAM *ctp_analyze_md_search(DataSet *dataSet)
     CTP_PARAM *md = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
 
     CTP_PARAM **temp_db = dataSet->db;
+    int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
+    dataSet->db_rows_size = dataSet->db_search_size;
 
     md = ctp_analyze_sd(dataSet);
 
     dataSet->db = temp_db;
+    dataSet->db_rows_size = temp_row;
 
     return md;
 }
