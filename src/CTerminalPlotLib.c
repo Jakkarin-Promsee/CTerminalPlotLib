@@ -770,11 +770,11 @@ void ctp_plot_scatter(DataSet *dataSet)
                     col_overlapped %= 4;
                     if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
                         ctp_utils_print_color(COLOR_RED);
-                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1)
+                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1))
                         ctp_utils_print_color(COLOR_BLUE);
-                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2)
+                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2))
                         ctp_utils_print_color(COLOR_YELLOW);
-                    else if ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3)
+                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3))
                         ctp_utils_print_color(COLOR_MAGENTA);
                     else
                         ctp_utils_print_color(COLOR_RESET);
