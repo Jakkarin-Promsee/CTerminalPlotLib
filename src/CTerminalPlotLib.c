@@ -877,7 +877,7 @@ void ctp_sort_search(DataSet *data)
     if (data->plotProperties->customize_display)
         ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
     else
-        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
+        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, 0, data->db_search_size - 1);
 }
 
 // Search Function - use to filter all data
