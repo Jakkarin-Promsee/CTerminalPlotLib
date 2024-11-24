@@ -11,7 +11,7 @@
 #include <locale.h>
 
 // Default data type to double (8 Bytes) || float (4 Bytes) || char (1 Bytes)
-typedef double CTP_PARAM;
+typedef char CTP_PARAM;
 
 // Default null value of data in DataSet (should set relate to CTP_PARAM, Caution this value will not show on terminal)
 #define CTP_NULL_VALUE 4.04e-10
@@ -123,7 +123,7 @@ int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, in
 void ctp_utils_quickSort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
 void ctp_utils_sort_db(DataSet *data);
 void ctp_utils_sort_db_by_y_param(DataSet *data);
-void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[], double min[], double max[]);
+void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[]);
 void ctp_utils_plot_with_space(const char s[], const char space[]);
 void ctp_utils_print_color(const char s[]);
 
@@ -143,8 +143,8 @@ void ctp_sort_search(DataSet *data);
 
 // Search Function - use to filter all data
 void ctp_reset_find();
-void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value);
-void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value);
+void ctp_findOne(DataSet *dataSet, int select_col, char *operator, CTP_PARAM search_value);
+void ctp_findMany(DataSet *dataSet, int select_col, char *operator, CTP_PARAM search_value);
 
 // Analyze Function - use to analyze all data
 CTP_PARAM *ctp_analyze_mean(DataSet *dataSet);

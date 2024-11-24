@@ -69,7 +69,8 @@
     "windows.h": "c",
     "locale.h": "c",
     "example2_plottingdefault2": "cpp",
-    "cterminalplotlib.c": "cpp"
+    "cterminalplotlib.c": "cpp",
+    "math.h": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

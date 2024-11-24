@@ -26,7 +26,7 @@ int main()
         "group 2"};
     ctp_add_label(dataSet, *name, max_name_length, avaliable_name);
 
-    // ctp_printf_properties(dataSet);
+    ctp_printf_properties(dataSet);
     // ctp_plot(dataSet);
 
     // ctp_plot(dataSet);

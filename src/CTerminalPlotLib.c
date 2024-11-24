@@ -298,7 +298,11 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
 void ctp_printf_memory_usage(const DataSet *dataSet)
 {
     printf("DataSet uses ");
-    if (sizeof(CTP_PARAM) == sizeof(float))
+    if (sizeof(CTP_PARAM) == sizeof(char))
+        printf("type char ");
+    else if (sizeof(CTP_PARAM) == sizeof(int))
+        printf("type int ");
+    else if (sizeof(CTP_PARAM) == sizeof(float))
         printf("type float ");
     else if (sizeof(CTP_PARAM) == sizeof(double))
         printf("type double ");
@@ -311,17 +315,7 @@ void ctp_printf_memory_usage(const DataSet *dataSet)
 }
 void ctp_printf_properties(const DataSet *dataSet)
 {
-    printf("DataSet uses ");
-    if (sizeof(CTP_PARAM) == sizeof(float))
-        printf("type float ");
-    else if (sizeof(CTP_PARAM) == sizeof(double))
-        printf("type double ");
-    else if (sizeof(CTP_PARAM) == sizeof(long double))
-        printf("type long double ");
-    else
-        printf("an unknown type ");
-    printf("to keep data\n");
-    printf("This DataSet memory usage is %d Bytes\n\n", ctp_get_dataset_memory_usage(dataSet));
+    ctp_printf_memory_usage(dataSet);
 
     printf("max_param: %d\nmax_name_size: %d\nmax_param_size: %d\n", dataSet->max_param, dataSet->max_name_size, dataSet->max_param_size);
 
@@ -375,15 +369,15 @@ void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b)
 {
     for (int i = 0; i < col; i++)
     {
-        double temp = db[i][a];
+        CTP_PARAM temp = db[i][a];
         db[i][a] = db[i][b];
         db[i][b] = temp;
     }
 }
 int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high)
 {
-    double pivot = db[chosen_Y_param][high]; // Choose the last element as pivot
-    int i = (low - 1);                       // Index of smaller element
+    CTP_PARAM pivot = db[chosen_Y_param][high]; // Choose the last element as pivot
+    int i = (low - 1);                          // Index of smaller element
 
     for (int j = low; j < high; j++)
     {
@@ -419,7 +413,7 @@ void ctp_utils_sort_db_by_y_param(DataSet *data)
     ctp_utils_update_db_cal(data);
     ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
 }
-void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double normalize_max[], double min[], double max[])
+void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[])
 {
     // Find min and max of X and Y axis (0 : x, 1 : y)
     bool initialDone[2] = {};
@@ -471,9 +465,9 @@ void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double
         for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
         {
             if (isY)
-                dataSet->db_cal[i][j] = (int)floor(((dataSet->db_cal[i][j]) / (max[1] - min[1])) * SCREEN_H);
+                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / (max[1] - min[1])) * SCREEN_H);
             else
-                dataSet->db_cal[i][j] = (int)floor(((dataSet->db_cal[i][j]) / (max[0] - min[0])) * SCREEN_W);
+                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / (max[0] - min[0])) * SCREEN_W);
         }
     }
 
@@ -481,8 +475,8 @@ void ctp_utils_normalizes(const DataSet *dataSet, double normalize_min[], double
     {
         int multiplier = (i == 0) ? SCREEN_W : SCREEN_H;
 
-        normalize_min[i] = ((min[i]) / (max[i] - min[i])) * multiplier;
-        normalize_max[i] = ((max[i]) / (max[i] - min[i])) * multiplier;
+        normalize_min[i] = ((double)(min[i]) / (max[i] - min[i])) * multiplier;
+        normalize_max[i] = ((double)(max[i]) / (max[i] - min[i])) * multiplier;
     }
 }
 void ctp_utils_plot_with_space(const char s[], const char space[])
@@ -620,14 +614,14 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 
         // Data
         printf("%s", CORNER_VC);
-        printf("%*.2f", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][i]); // Print Y values
+        printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][i]); // Print Y values
         for (int k = 0; k < BACK_SPACE; k++)
             printf(" ");
         for (int j = ((dataSet->plotProperties->customize_display) ? 0 : 1); j < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size); j++)
         {
             printf("%s", CORNER_VC);
             if (db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[j] : j)][i] != CTP_NULL_VALUE)
-                printf("%*.2f", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[j] : j)][i]); // Print X values
+                printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[j] : j)][i]); // Print X values
             else
                 printf("%*s", TABLE_WIDTH - BACK_SPACE, "");
 
@@ -893,13 +887,13 @@ void ctp_reset_find()
 {
     isFirstSearch = false;
 }
-void ctp_findOne(DataSet *dataSet, int select_col, char operator[], CTP_PARAM search_value)
+void ctp_findOne(DataSet *dataSet, int select_col, char *operator, CTP_PARAM search_value)
 {
     isFindOne = true;
     ctp_findMany(dataSet, select_col, operator, search_value);
     isFindOne = false;
 }
-void ctp_findMany(DataSet *dataSet, int select_col, char operator[5], CTP_PARAM search_value)
+void ctp_findMany(DataSet *dataSet, int select_col, char *operator, CTP_PARAM search_value)
 {
     bool const_isFirstSearch = isFirstSearch;
     // Copy db to db_cal
