@@ -11,7 +11,7 @@
 #include <locale.h>
 
 // Default data type to double (8 Bytes) || float (4 Bytes) || char (1 Bytes)
-typedef char CTP_PARAM;
+typedef double CTP_PARAM;
 
 // Default null value of data in DataSet (should set relate to CTP_PARAM, Caution this value will not show on terminal)
 #define CTP_NULL_VALUE 4.04e-10
