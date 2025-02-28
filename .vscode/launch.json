@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/BTCOM/Desktop/CTerminalPlot/src",
-      "program": "c:/Users/BTCOM/Desktop/CTerminalPlot/src/build/Debug/outDebug",
+      "cwd": "c:/Users/BTCOM/Desktop/CTerminalPlot/old-ref/tests",
+      "program": "c:/Users/BTCOM/Desktop/CTerminalPlot/old-ref/tests/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
