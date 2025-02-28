@@ -21,6 +21,7 @@ CTerminalPlot/
  ├── 📂 src/        # Source code (.c files)
  ├── 📂 tests/      # Unit tests and full examples
  ├── 📂 examples/   # Standalone example programs referenced in docs/
+ ├── 📂 data/       # Test datasets (CSV, JSON, or other formats)
 ```
 
 ## **Showcase**
