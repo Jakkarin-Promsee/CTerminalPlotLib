@@ -28,7 +28,6 @@ int main()
 
     ctp_printf_properties(dataSet);
     // ctp_plot(dataSet);
-
     // ctp_plot(dataSet);
 
     // ctp_plot_table(dataSet);
@@ -42,6 +41,8 @@ int main()
     ctp_sort(dataSet);
     ctp_plot_analyze(dataSet, mean);
     ctp_plot(dataSet);
+
+    printf("%d %d %d %d", sizeof(char), sizeof(int), sizeof(float), sizeof(double));
 
     // ctp_findMany(dataSet, 0, "gte", -1);
     // ctp_findMany(dataSet, 0, "lte", 2);
