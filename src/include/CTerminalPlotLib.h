@@ -89,6 +89,9 @@ extern char *COLOR_BLUE;
 extern char *COLOR_YELLOW;
 extern char *COLOR_MAGENTA;
 
+// Test Access Library - use to comfirm that otherfile can access these function
+bool ctp_isActive();
+
 // Setting Plot Function - use to setting table and scatter plot properties
 void ctp_set_table_reset_default();
 void ctp_set_graph_reset_default();

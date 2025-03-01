@@ -1,4 +1,4 @@
-#include "../include/CTerminalPlotLib.h"
+#include "./include/CTerminalPlotLib.h"
 
 // Table border assets initialize
 int TABLE_WIDTH = 10;
@@ -48,6 +48,12 @@ char *COLOR_MAGENTA = "\033[1;35m";
 bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
 int *DEFAULT_SAVE_POINTER[5];
 int DEFAULT_SAVE_VALUE[5];
+
+// Test Access Library - use to comfirm that otherfile can access these function
+bool ctp_isActive()
+{
+    return true;
+}
 
 // Setting Plot Function - use to setting table and scatter plot properties
 void ctp_set_table_reset_default()
