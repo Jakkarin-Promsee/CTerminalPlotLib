@@ -16,12 +16,11 @@
 
 ```plaintext
 CTerminalPlot/
+ ├── 📂 src/        # Source code (.c files) (for users to include)
  ├── 📂 docs/       # Documentation folder
- ├── 📂 include/    # Public headers (for users to include)
- ├── 📂 src/        # Source code (.c files)
- ├── 📂 tests/      # Unit tests and full examples
- ├── 📂 examples/   # Standalone example programs referenced in docs/
- ├── 📂 data/       # Test datasets (CSV, JSON, or other formats)
+ |   └──
+ └── 📂 examples/   # Standalone example programs referenced in docs/
+
 ```
 
 ## **Showcase**

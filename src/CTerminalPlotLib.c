@@ -167,6 +167,7 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
 
     // Initialize other properties
     dataset->db_cols_size = 0;
+    dataset->db_cols_size_label = 0;
     dataset->db_rows_size = 0;
     dataset->db_search_size = 0;
     dataset->chosen_Y_param = 0;
@@ -275,8 +276,10 @@ void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int avali
     }
     for (int i = 0; i < avaliable_label; i++)
     {
-        strcpy(dataset->label[i], (label + i * max_name_length));
+        strcpy(dataset->label[dataset->db_cols_size_label + i], (label + i * max_name_length));
     }
+
+    dataset->db_cols_size_label += avaliable_label;
 }
 int ctp_get_dataset_memory_usage(const DataSet *dataSet)
 {
@@ -591,7 +594,7 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
     printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_Y_param] : dataSet->label[0]));
     for (int k = 0; k < BACK_SPACE; k++)
         printf(" ");
-    for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size); i++)
+    for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size_label); i++)
     {
         printf("%s", CORNER_VC);
         printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_X_param[i]] : dataSet->label[i]));

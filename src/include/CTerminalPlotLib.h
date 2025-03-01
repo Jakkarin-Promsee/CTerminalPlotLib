@@ -34,7 +34,8 @@ typedef struct
     CTP_PARAM **db;                 // Data array
     CTP_PARAM **db_search;          // Use to keep find condition
     CTP_PARAM **db_cal;             // Use to keep sort data array
-    int db_cols_size;               // Number of columns
+    int db_cols_size;               // Number of columns for data
+    int db_cols_size_label;         // Number of columns for label
     int db_rows_size;               // Number of rows
     int db_search_size;             // Number of data keep in db_search_keep
     int chosen_Y_param;             // Y parameter index

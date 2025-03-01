@@ -15,8 +15,8 @@ int main()
     // data [][max_rows], require only number
     CTP_PARAM data[][10] = {
         {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 2 (default x-axis)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 3 (default x-axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
+        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
     };
 
     ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
