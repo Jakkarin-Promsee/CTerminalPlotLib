@@ -1,4 +1,4 @@
-# Overview
+# **Overview**
 
 ### 1. Initialize the Data Set
 
@@ -22,6 +22,12 @@ void ctp_add_label(dataSet, *name, max_name_length, available_name);
 
 ```c
 void ctp_plot(dataSet);
+```
+
+### 5. Free Allocate memeory of Data Set
+
+```c
+void ctp_free_dataset(dataSet);
 ```
 
 ---
@@ -133,6 +139,26 @@ ctp_plot(dataSet);
 
 <br>
 
+# **Free Allocate memeory of Data Set**
+
+```c
+void ctp_free_dataset(dataSet);
+```
+
+### Parameters:
+
+- `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of Data Set
+
+### Usage:
+
+```c
+ctp_free_dataset(dataSet);
+```
+
+---
+
+<br>
+
 # **All Sample**
 
 ## **.C code** ([go to .c file](../examples/2_basic-usage.c))
@@ -179,6 +205,9 @@ int main()
 
     // Default Plot (both table and scatter)
     ctp_plot(dataSet);
+
+    // Free Allocate memeory of Data Set
+    ctp_free_dataset(dataSet);
 
     return 0;
 }

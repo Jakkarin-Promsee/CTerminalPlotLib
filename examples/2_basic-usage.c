@@ -40,5 +40,8 @@ int main()
     // Default Plot (both table and scatter)
     ctp_plot(dataSet);
 
+    // Free Allocate memeory of Data Set
+    ctp_free_dataset(dataSet);
+
     return 0;
 }
