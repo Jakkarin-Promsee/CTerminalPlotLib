@@ -4,7 +4,7 @@
 int main()
 {
     // Initialize data set
-    int max_cols_size = 3, max_name_length = 20, max_rows_size = 10;
+    int max_cols_size = 5, max_name_length = 20, max_rows_size = 10;
     DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
 
     //---
@@ -36,6 +36,8 @@ int main()
     ctp_add_label(dataSet, *name, max_name_length, available_name);
 
     //---
+
+    ctp_printf_memory_usage(dataSet);
 
     // Default Plot (both table and scatter)
     ctp_plot(dataSet);

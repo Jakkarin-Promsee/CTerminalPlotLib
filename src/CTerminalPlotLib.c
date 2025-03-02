@@ -298,7 +298,7 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
     mem += dataSet->max_param * sizeof(int);
 
     // Calculate memory for individual integers
-    mem += 12 * sizeof(int);
+    mem += 13 * sizeof(int);
 
     return mem;
 }
@@ -306,21 +306,23 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
 // Print DataSet Function - use to show insid variable quickly
 void ctp_printf_memory_usage(const DataSet *dataSet)
 {
+    printf("max_param: %d, max_name_size: %d, max_param_size: %d\n", dataSet->max_param, dataSet->max_name_size, dataSet->max_param_size);
+
+    printf("current db_cols_size: %d, current db_rows_size: %d\n\n", dataSet->db_cols_size, dataSet->db_rows_size);
+
     printf("DataSet uses ");
     if (sizeof(CTP_PARAM) == sizeof(char))
         printf("type char ");
     else if (sizeof(CTP_PARAM) == sizeof(int))
-        printf("type int ");
-    else if (sizeof(CTP_PARAM) == sizeof(float))
-        printf("type float ");
+        printf("type int/float ");
     else if (sizeof(CTP_PARAM) == sizeof(double))
         printf("type double ");
     else if (sizeof(CTP_PARAM) == sizeof(long double))
         printf("type long double ");
     else
         printf("an unknown type ");
-    printf("to keep data\n");
-    printf("This DataSet memory usage is %d Bytes\n\n", ctp_get_dataset_memory_usage(dataSet));
+    printf("to keep data.\n");
+    printf("This DataSet memory usage is %d Bytes.\n\n", ctp_get_dataset_memory_usage(dataSet));
 }
 void ctp_printf_properties(const DataSet *dataSet)
 {
@@ -328,7 +330,7 @@ void ctp_printf_properties(const DataSet *dataSet)
 
     printf("max_param: %d\nmax_name_size: %d\nmax_param_size: %d\n", dataSet->max_param, dataSet->max_name_size, dataSet->max_param_size);
 
-    printf("db_rows_size: %d\ndb_cols_size: %d\n", dataSet->db_rows_size, dataSet->db_cols_size);
+    printf("db_cols_size: %d\ndb_rows_size: %d\n", dataSet->db_cols_size, dataSet->db_rows_size);
 
     printf("chosen_Y_param: %d\nchosen_X_param_size: %d\nchosen_X_param: ", dataSet->chosen_Y_param, dataSet->chosen_X_param_size);
     for (int i = 0; i < dataSet->chosen_X_param_size; i++)

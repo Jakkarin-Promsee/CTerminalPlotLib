@@ -1,3 +1,5 @@
+<!-- 1_setup.md -->
+
 # **CTerminalPlotLib - Setup Guide**
 
 ## **1. Download the Source Code**
@@ -19,23 +21,6 @@ To use **CTerminalPlotLib**, include the main source file in your project:
 
 // Your project code
 ```
-
-<!-- Alternatively, compile the library separately and link it during compilation:
-
-```sh
-gcc -o your_program your_source.c ../src/CTerminalPlotLib.c -lm
-```
-
-- Ensure that the `-lm` flag is included for mathematical operations.
-- Adjust the relative path (`../src/`) based on your project structure. -->
-
-<!-- ## **3. Compilation Example**
-
-If your project consists of multiple source files, compile them together:
-
-```sh
-gcc -o your_program main.c ../src/CTerminalPlotLib.c -lm
-``` -->
 
 ## **3. Usage Example**
 
