@@ -1,266 +1,213 @@
-<!-- 2_basic-usage.md -->
+<!-- 2_Basic-Usage.md -->
 
-# **Overview**
+# **CTerminalPlotLib - Basic Usage**
 
-- ### 1. Initialize the Data Set
+## **Contents**
 
-  ```c
-  DataSet *ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
-  ```
+- [Overview](#overview)
+- [Initialize the Data Set](#initialize-the-data-set)
+- [Add Data to Columns](#add-data-to-columns)
+- [Add Column Labels](#add-column-labels)
+- [Display Memory Usage](#display-memory-usage)
+- [Create Plots](#create-plots)
+- [Free Memory](#free-memory)
+- [Complete Example](#complete-example)
 
-- ### 2. Add Data for each Column to the Data Set
+## **Overview**
 
-  ```c
-  void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
-  ```
+CTerminalPlotLib operates on a sequence of steps:
 
-- ### 3. Add Labels of each Column to the Data Set
+1. **Initialize** a data set with specified dimensions
+2. **Add data** for columns
+3. **Add labels** for columns
+4. Optionally **display memory usage**
+5. **Plot** the data (tables and scatter plots)
+6. **Free** allocated memory
 
-  ```c
-  void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
-  ```
+## **Initialize the Data Set**
 
-- ### 4. Print allocate memory from Data Set
+```c
+DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
+```
 
-  ```c
-  void ctp_printf_memory_usage(const DataSet *dataSet);
-  ```
+**Parameters:**
 
-- ### 5. Default Plot Data Set (Both Table and Scatter Plot)
+- `max_param`: Maximum number of columns
+- `max_name_size`: Maximum length for column names
+- `max_param_size`: Maximum number of rows per column
 
-  ```c
-  void ctp_plot(DataSet *dataSet);
-  ```
+**Example:**
 
-- ### 6. Free Allocate memory of Data Set
+```c
+int max_cols_size = 3;
+int max_name_length = 20;
+int max_rows_size = 10;
 
-  ```c
-  void ctp_free_dataset(DataSet *dataset);
-  ```
+DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
+```
 
----
+## **Add Data to Columns**
 
-<br>
+```c
+void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
+```
 
-# **Initialize the Data Set**
+**Parameters:**
 
-- ### Docs:
+- `dataSet`: Pointer to initialized data set
+- `data`: Pointer to data array
+- `max_row`: Maximum rows in data array (for address calculation)
+- `avaliable_col`: Number of columns to add
+- `avaliable_row`: Number of rows to add
 
-  ```c
-  DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
-  ```
+**Example:**
 
-- ### Parameters:
+```c
+int available_cols = 3;
+int available_rows = 7;
+int max_rows = 10;
 
-  - `max_param`: The maximum number of parameter columns.
-  - `max_name_size`: The maximum number of characters for a column name.
-  - `max_param_size`: The maximum number of data entries to store per column.
+// data[][max_rows] - Cannot use variable for array size
+CTP_PARAM data[][10] = {
+    {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (y values)
+    {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (x values for series 1)
+    {3, 2, 1, 0, -1, -2, -3}  // Column 2 (x values for series 2)
+};
 
-- ### Usage:
+ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
+```
 
-  ```c
-  int max_cols_size = 3, max_name_length = 20, max_rows_size = 10;
+## **Add Column Labels**
 
-  DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
-  ```
+```c
+void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
+```
 
----
+**Parameters:**
 
-<br>
+- `dataSet`: Pointer to initialized data set
+- `name`: Pointer to array of strings containing column labels
+- `max_name_length`: Maximum length of each label
+- `avaliable_name`: Number of labels to add
 
-# **Add Data for each Column to the Data Set**
+**Example:**
 
-- ### Docs:
+```c
+int available_name = 3;
+int max_name_length = 20;
 
-  ```c
-  void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
-  ```
+// name[][max_name_length] - Cannot use variable for array size
+char name[][20] = {
+    "y",      // Column 0 (y-axis)
+    "y = x",  // Column 1 (first series)
+    "y = -x", // Column 2 (second series)
+};
 
-- ### Parameters:
+ctp_add_label(dataSet, *name, max_name_length, available_name);
+```
 
-  - `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of the Data Set.
-  - `data`: The data pointer to add into the data set.
-  - `avaliable_col`: The number of columns to add to the dataset.
-  - `avaliable_row`: The number of rows to add to the dataset.
-  - `max_row`: The maximum number of rows in the dataset (used to calculate the address of data in the array).
+## **Display Memory Usage**
 
-- ### Usage:
+```c
+void ctp_printf_memory_usage(const DataSet *dataSet);
+```
 
-  ```c
-  int available_cols = 3, available_rows = 7, max_rows = 10;
+**Parameters:**
 
-  // data [][max_rows], Can not declare array size with variable
-  CTP_PARAM data[][10] = {
-      {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-      {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
-      {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
-  };
+- `dataSet`: Pointer to initialized data set
 
-  ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
-  ```
+**Example:**
 
----
+```c
+ctp_printf_memory_usage(dataSet);
+```
 
-<br>
+## **Create Plots**
 
-# **Add Labels of each Column to the Data Set**
+```c
+void ctp_plot(DataSet *dataSet); // Plot Both Table And Scatter
+void ctp_plot_table(DataSet *dataSet); // Plot Only Table
+void ctp_plot_scatter(DataSet *dataSet); // Plot Only Scatter
+```
 
-- ### Docs:
+**Parameters:**
 
-  ```c
-  void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
-  ```
+- `dataSet`: Pointer to initialized data set
 
-- ### Parameters:
+**Example:**
 
-  - `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of the Data Set.
-  - `name`: The name pointer to add to the data set.
-  - `avaliable_name`: The number of column labels to add to the dataset.
-  - `max_name_length`: The maximum length of each label (used to determine the size of the name array).
+```c
+ctp_plot(DataSet *dataSet); // Plot Both Table And Scatter
+ctp_plot_table(DataSet *dataSet); // Plot Only Table
+ctp_plot_scatter(DataSet *dataSet); // Plot Only Scatter
+```
 
-- ### Usage:
+## **Free Memory**
 
-  ```c
-  int available_name = 3, max_name_length = 20;
+```c
+void ctp_free_dataset(DataSet *dataset);
+```
 
-  // name [][max_name_length], Can not declare array size with variable
-  char name[][20] = {
-      "y",      // Column 0 (default y-axis)
-      "y = x",  // Column 1 (default x-axis)
-      "y = -x", // Column 2 (default x-axis)
-  };
+**Parameters:**
 
-  ctp_add_label(dataSet, *name, max_name_length, available_name);
-  ```
+- `dataSet`: Pointer to initialized data set
 
----
+**Example:**
 
-<br>
+```c
+ctp_free_dataset(dataSet);
+```
 
-# **Print allocated memory from Data Set**
+## **Complete Example**
 
-- ### Docs:
+```c
+#include <stdio.h>
+#include "../src/CTerminalPlotLib.c"
 
-  ```c
-  void ctp_printf_memory_usage(const DataSet *dataSet);
-  ```
+int main() {
+    // 1. Initialize data set
+    int max_cols_size = 3, max_name_length = 20, max_rows_size = 10;
+    DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
 
-- ### Parameters:
+    // 2. Prepare data
+    int available_cols = 3, available_rows = 7, max_rows = 10;
+    CTP_PARAM data[][10] = {
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (y-axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (x values for series 1)
+        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (x values for series 2)
+    };
 
-  - `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of the Data Set.
+    // 3. Add data to data set
+    ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
 
-- ### Usage:
+    // 4. Prepare labels
+    int available_name = 3;
+    char name[][20] = {
+        "y",      // Column 0 (y-axis)
+        "y = x",  // Column 1 (first series)
+        "y = -x", // Column 2 (second series)
+    };
 
-  ```c
-  ctp_printf_memory_usage(dataSet);
-  ```
+    // 5. Add labels to data set
+    ctp_add_label(dataSet, *name, max_name_length, available_name);
 
----
+    // 6. Display memory usage (optional)
+    ctp_printf_memory_usage(dataSet);
 
-<br>
+    // 7. Create plots
+    ctp_plot(dataSet);
 
-# **Default Plot Data Set (Both Table and Scatter Plot)**
+    // 8. Free allocated memory
+    ctp_free_dataset(dataSet);
 
-- ### Docs:
+    return 0;
+}
+```
 
-  ```c
-  void ctp_plot(DataSet *dataSet);
-  ```
+**Output:**
 
-- ### Parameters:
+Table output:  
+![Table Plot](./images/2_0.png)
 
-  - `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of the Data Set.
-
-- ### Usage:
-
-  ```c
-  ctp_plot(dataSet);
-  ```
-
----
-
-<br>
-
-# **Free Allocated memory of Data Set**
-
-- ### Docs:
-
-  ```c
-  void ctp_free_dataset(DataSet *dataset);
-  ```
-
-- ### Parameters:
-
-  - `dataSet`: The data set pointer from `ctp_initialize_dataset` used to store all address of the Data Set.
-
-- ### Usage:
-
-  ```c
-  ctp_free_dataset(dataSet);
-  ```
-
----
-
-<br>
-
-# **All Sample**
-
-- ## **.C code** ([go to .c file](../examples/2_basic-usage.c))
-
-  ```c
-  #include <stdio.h>
-  #include "../src/CTerminalPlotLib.c"
-
-  int main()
-  {
-      // Initialize data set
-      int max_cols_size = 5, max_name_length = 20, max_rows_size = 10;
-      DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
-
-      //---
-
-      // Add data to data set
-      int available_cols = 3, available_rows = 7, max_rows = 10;
-
-      // data [][max_rows], Can not declare array size with variable
-      CTP_PARAM data[][10] = {
-          {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-          {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
-          {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
-      };
-
-      ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
-
-      //---
-
-      // Add label to data set
-      int available_name = 3;
-
-      // data [][max_name_length], Can not declare array size with variable
-      char name[][20] = {
-          "y",      // Column 0 (default y-axis)
-          "y = x",  // Column 1 (default x-axis)
-          "y = -x", // Column 2 (default x-axis)
-      };
-
-      ctp_add_label(dataSet, *name, max_name_length, available_name);
-
-      //---
-
-      // Default Plot (both table and scatter)
-      ctp_plot(dataSet);
-
-      // Free Allocate memory of Data Set
-      ctp_free_dataset(dataSet);
-
-      return 0;
-  }
-  ```
-
-- ## Terminal Output
-
-    <img src="./images/2_0.png" alt="Table Plot" width="300" />
-
-    <br>
-
-    <img src="./images/2_1.png" alt="Scatter Plot" width="600" />
+Scatter plot:  
+![Scatter Plot](./images/2_1.png)
