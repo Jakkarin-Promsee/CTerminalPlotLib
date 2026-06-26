@@ -1,9 +1,10 @@
 // Minimal assertion tests for CTerminalPlot — proves the Level 1 correctness fixes.
-// Build (current single-TU model): gcc -Isrc/include tests/test_ctp.c -o test.exe -lm
+// Build & run:  make test
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "../src/CTerminalPlotLib.c"
+#include "../src/include/CTerminalPlotLib.h"
 
 #define APPROX(a, b) (fabs((double)(a) - (double)(b)) < 1e-4)
 

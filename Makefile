@@ -1,29 +1,48 @@
-# Compiler
-CC = gcc
+# CTerminalPlot — build the static library, the examples, and the tests.
+#
+# Targets:
+#   make            build the library + all example programs
+#   make test       build and run the assertion tests
+#   make clean      remove build artifacts
+#
+# Run from a Unix-like shell (Git Bash / MSYS2 / Linux / macOS).
 
-# Compiler flags
-CFLAGS = -Iinclude -Wall -g
+CC      = gcc
+CFLAGS  = -Isrc/include -Wall -Wextra -std=c11 -g
+LDLIBS  = -lm
 
-# Source files
-SRC = src/CTerminalPlotLib.c src/main.c
+BUILD   = build
+LIB     = $(BUILD)/libctp.a
+LIB_OBJ = $(BUILD)/CTerminalPlotLib.o
 
-# Object files
-OBJ = $(SRC:.c=.o)
+EXAMPLE_SRC  = $(wildcard examples/*.c)
+EXAMPLE_BINS = $(patsubst examples/%.c,examples/output/%.exe,$(EXAMPLE_SRC))
 
-# Target executable
-TARGET = my_program
+.PHONY: all examples test clean
 
-# Default target
-all: $(TARGET)
+all: examples
 
-# Rule to link object files to create the executable
-$(TARGET): $(OBJ)
-	$(CC) -o $@ $^
+# --- static library ---
+$(LIB): $(LIB_OBJ)
+	ar rcs $@ $^
 
-# Rule to compile source files into object files
-%.o: %.c
+$(LIB_OBJ): src/CTerminalPlotLib.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean rule to remove object files and the target executable
+# --- examples (each one includes the header and links the library) ---
+examples: $(EXAMPLE_BINS)
+
+examples/output/%.exe: examples/%.c $(LIB) | examples/output
+	$(CC) $(CFLAGS) $< $(LIB) -o $@ $(LDLIBS)
+
+# --- tests ---
+test: $(LIB) | tests/output
+	$(CC) $(CFLAGS) tests/test_ctp.c $(LIB) -o tests/output/test_ctp.exe $(LDLIBS)
+	./tests/output/test_ctp.exe
+
+$(BUILD) examples/output tests/output:
+	mkdir -p $@
+
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -rf $(BUILD)
+	rm -f examples/output/*.exe tests/output/*.exe

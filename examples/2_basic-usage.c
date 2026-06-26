@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../src/CTerminalPlotLib.c"
+#include "../src/include/CTerminalPlotLib.h"
 
 int main()
 {

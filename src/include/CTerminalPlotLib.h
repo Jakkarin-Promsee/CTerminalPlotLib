@@ -1,14 +1,10 @@
 #ifndef CTERMINAL_PLOT_LIB_H
 #define CTERMINAL_PLOT_LIB_H
 
-#include "CTerminalPlotUtils.h"
-#include <stdio.h>
-#include <stdlib.h>
+// The public header only needs <stdbool.h> (bool appears in the structs and
+// prototypes). Implementation-only headers (stdio, stdlib, string, math,
+// windows, locale) are included by CTerminalPlotLib.c, not here.
 #include <stdbool.h>
-#include <math.h>
-#include <string.h>
-#include <windows.h>
-#include <locale.h>
 
 // Default data type to double (8 Bytes) || float (4 Bytes) || char (1 Bytes)
 typedef float CTP_PARAM;
@@ -124,7 +120,7 @@ void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
 void ctp_utils_update_db_cal(DataSet *data);
 void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b);
 int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
-void ctp_utils_quickSort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
+void ctp_utils_quicksort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
 void ctp_utils_sort_db(DataSet *data);
 void ctp_utils_sort_db_by_y_param(DataSet *data);
 void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[]);
@@ -154,5 +150,10 @@ void ctp_findMany(DataSet *dataSet, int select_col, char *operator, CTP_PARAM se
 CTP_PARAM *ctp_analyze_mean(DataSet *dataSet);
 CTP_PARAM *ctp_analyze_sd(DataSet *dataSet);
 CTP_PARAM *ctp_analyze_md(DataSet *dataSet);
+
+// Analyze the current search result set (db_search) instead of the full data
+CTP_PARAM *ctp_analyze_mean_search(DataSet *dataSet);
+CTP_PARAM *ctp_analyze_sd_search(DataSet *dataSet);
+CTP_PARAM *ctp_analyze_md_search(DataSet *dataSet);
 
 #endif

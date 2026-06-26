@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <stdbool.h>
+#include <windows.h>
+#include <locale.h>
 #include "./include/CTerminalPlotLib.h"
 
 // Table border assets initialize
@@ -46,9 +53,10 @@ char *COLOR_YELLOW = "\033[1;33m";
 char *COLOR_MAGENTA = "\033[1;35m";
 
 // BACK_SPACE | TABLE_WIDTH | SCREEN_H | SCREEN_W | BORDER_EDGE
-bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
-int *DEFAULT_SAVE_POINTER[5];
-int DEFAULT_SAVE_VALUE[5];
+// File-private: these back the "reset to default" feature and are not public API.
+static bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
+static int *DEFAULT_SAVE_POINTER[5];
+static int DEFAULT_SAVE_VALUE[5];
 
 // Test Access Library - use to comfirm that otherfile can access these function
 bool ctp_isActive()
@@ -521,7 +529,7 @@ void ctp_utils_print_color(const char s[])
 }
 
 // Main Function - (user call) use to handle table and scatter plot
-bool print_plot_total = false;
+static bool print_plot_total = false;
 void ctp_plot(DataSet *dataSet)
 {
     SetConsoleOutputCP(CP_UTF8);
@@ -912,8 +920,8 @@ void ctp_sort_search(DataSet *data)
 }
 
 // Search Function - use to filter all data
-bool isFindOne = false;
-bool isFirstSearch = false;
+static bool isFindOne = false;
+static bool isFirstSearch = false;
 void ctp_reset_find()
 {
     isFirstSearch = false;

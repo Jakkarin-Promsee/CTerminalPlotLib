@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../src/CTerminalPlotLib.c"
+#include "include/CTerminalPlotLib.h"
 
 int main()
 {
@@ -36,7 +36,6 @@ int main()
     // printf("\n");
     // dataSet->db_rows_size = 1;
     // ctp_plot_table_customize(dataSet, mean);
-    print_plot_total = false;
     ctp_sort(dataSet);
     ctp_plot_analyze(dataSet, mean);
     ctp_plot(dataSet);
