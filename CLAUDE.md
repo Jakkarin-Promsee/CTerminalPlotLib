@@ -21,10 +21,18 @@ do *not* `#include` the `.c` (that was the original mistake; it caused duplicate
 link errors).
 
 ```sh
-make            # builds build/libctp.a + every examples/*.c into examples/output/
+make            # builds libctp.a, every examples/*.c, and the ctplot CLI (build/ctplot.exe)
 make test       # builds & runs the assertion tests (tests/test_ctp.c)
 make clean      # removes build artifacts
 ```
+
+There's also a small CLI built on the library:
+
+```sh
+build/ctplot.exe examples/data/sample.csv --line --y 1 --x 0   # plot a CSV column
+cat data.csv | build/ctplot.exe --bar --y 1                    # or pipe via stdin
+```
+`ctplot` auto-disables color when its output is piped/redirected (or `--no-color` / `NO_COLOR`).
 
 To compile one program by hand (also what the default VS Code task does):
 
@@ -61,6 +69,7 @@ Linux/macOS before claiming it there.
 | `examples/*.c` | Runnable, documented programs (1 setup → 2 basic → 3 rows → 4 columns). Each includes the header and links the library. The source of truth for "how do I use this". |
 | `tests/test_ctp.c` | Assertion tests (mean/sd/md + search counts). Run via `make test`. |
 | `tests/golden/*.txt` | Captured plot output; diff against these to catch rendering regressions. |
+| `src/ctplot.c` | The **`ctplot` CLI** — reads a CSV (file or stdin), renders table/scatter/line/bar/hist via flags; auto-mono when piped. `make` builds it to `build/ctplot.exe`. |
 | `src/main.c` | Scratch experiments. Not a demo (links the lib like the examples). |
 | `docs/*.md` | Per-topic guides. Incomplete and **still show the old `#include "*.c"` usage** — slated for the Level 5 docs pass. |
 | `old-ref/` | The original version + its README and search examples (archive; not built). |

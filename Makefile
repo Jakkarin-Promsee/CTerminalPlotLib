@@ -14,13 +14,20 @@ LDLIBS  = -lm
 BUILD   = build
 LIB     = $(BUILD)/libctp.a
 LIB_OBJ = $(BUILD)/CTerminalPlotLib.o
+CLI_BIN = $(BUILD)/ctplot.exe
 
 EXAMPLE_SRC  = $(wildcard examples/*.c)
 EXAMPLE_BINS = $(patsubst examples/%.c,examples/output/%.exe,$(EXAMPLE_SRC))
 
-.PHONY: all examples test clean
+.PHONY: all examples cli test clean
 
-all: examples
+all: examples cli
+
+# --- ctplot CLI ---
+cli: $(CLI_BIN)
+
+$(CLI_BIN): src/ctplot.c $(LIB) | $(BUILD)
+	$(CC) $(CFLAGS) src/ctplot.c $(LIB) -o $@ $(LDLIBS)
 
 # --- static library ---
 $(LIB): $(LIB_OBJ)
