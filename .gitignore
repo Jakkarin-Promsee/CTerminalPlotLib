@@ -19,3 +19,6 @@
 # Ignore build directories
 build/
 bin/
+
+# Scratch notes (kept local)
+temp.md
