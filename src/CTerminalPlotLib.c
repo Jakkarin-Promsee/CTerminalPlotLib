@@ -198,7 +198,7 @@ PlotProperties *ctp_initialize_plotproperties()
     prop->customize_display = false;
     prop->table_plot = true;
     prop->scatter_plot = true;
-    prop->line_plot = true;
+    prop->line_plot = false; // off by default: ctp_plot draws table + scatter unless asked
 
     return prop;
 }
@@ -621,6 +621,8 @@ void ctp_plot(DataSet *dataSet)
         ctp_plot_table(dataSet);
     if (dataSet->plotProperties->scatter_plot)
         ctp_plot_scatter(dataSet);
+    if (dataSet->plotProperties->line_plot)
+        ctp_plot_line(dataSet);
 }
 void ctp_plot_search(DataSet *dataSet)
 {
@@ -990,6 +992,314 @@ void ctp_plot_scatter_search(DataSet *dataSet)
 
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_rows_size;
+}
+
+// ---------------------------------------------------------------------------
+// Internal char-canvas — a width x height grid of UTF-8 glyph cells, each with
+// an optional ANSI color. Renderers rasterize into it, then flush it to the
+// terminal in one pass. Born for the line plot; reused later by the bar and
+// braille renderers. File-static: not part of the public API.
+// ---------------------------------------------------------------------------
+#define CTP_CANVAS_GLYPH_BYTES 4 // up to a 3-byte UTF-8 glyph + NUL
+
+typedef struct
+{
+    int w, h;
+    char *glyph;        // w*h cells, each CTP_CANVAS_GLYPH_BYTES wide
+    const char **color; // w*h ANSI color strings (NULL = no color)
+} CtpCanvas;
+
+static CtpCanvas *ctp_canvas_new(int w, int h)
+{
+    CtpCanvas *cv = (CtpCanvas *)malloc(sizeof(CtpCanvas));
+    if (!cv)
+        return NULL;
+    cv->w = w;
+    cv->h = h;
+    cv->glyph = (char *)malloc((size_t)w * h * CTP_CANVAS_GLYPH_BYTES);
+    cv->color = (const char **)calloc((size_t)w * h, sizeof(char *));
+    if (!cv->glyph || !cv->color)
+    {
+        free(cv->glyph);
+        free(cv->color);
+        free(cv);
+        return NULL;
+    }
+    for (int i = 0; i < w * h; i++)
+        strcpy(&cv->glyph[i * CTP_CANVAS_GLYPH_BYTES], " ");
+    return cv;
+}
+
+static void ctp_canvas_free(CtpCanvas *cv)
+{
+    if (!cv)
+        return;
+    free(cv->glyph);
+    free(cv->color);
+    free(cv);
+}
+
+static void ctp_canvas_set(CtpCanvas *cv, int x, int y, const char *g, const char *color)
+{
+    if (x < 0 || x >= cv->w || y < 0 || y >= cv->h)
+        return;
+    int idx = y * cv->w + x;
+    strncpy(&cv->glyph[idx * CTP_CANVAS_GLYPH_BYTES], g, CTP_CANVAS_GLYPH_BYTES - 1);
+    cv->glyph[idx * CTP_CANVAS_GLYPH_BYTES + CTP_CANVAS_GLYPH_BYTES - 1] = '\0';
+    cv->color[idx] = color;
+}
+
+// Bresenham segment. The glyph is chosen once from the segment's slope so a run
+// of cells reads as one stroke (─ │ ╱ ╲); vertices are marked by the caller.
+static void ctp_canvas_line(CtpCanvas *cv, int x0, int y0, int x1, int y1, const char *color)
+{
+    int dx = abs(x1 - x0), dy = abs(y1 - y0);
+    const char *g;
+    if (dx > 2 * dy)
+        g = "─"; // mostly horizontal
+    else if (dy > 2 * dx)
+        g = "│"; // mostly vertical
+    else
+        g = ((x1 > x0) == (y1 < y0)) ? "╱" : "╲"; // ~diagonal
+
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy;
+    int x = x0, y = y0;
+    while (1)
+    {
+        ctp_canvas_set(cv, x, y, g, color);
+        if (x == x1 && y == y1)
+            break;
+        int e2 = 2 * err;
+        if (e2 > -dy)
+        {
+            err -= dy;
+            x += sx;
+        }
+        if (e2 < dx)
+        {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
+// Map a data value onto [0, n-1] cell indices, clamped.
+static int ctp_canvas_map(double v, double mn, double range, int n)
+{
+    int c = (int)lround(((v - mn) / range) * (n - 1));
+    if (c < 0)
+        c = 0;
+    if (c >= n)
+        c = n - 1;
+    return c;
+}
+
+// Drop an ASCII string into a row buffer at pos (used for the x-axis ticks).
+static void ctp_canvas_place(char *buf, int w, int pos, const char *s)
+{
+    for (int i = 0; s[i] != '\0'; i++)
+        if (pos + i >= 0 && pos + i < w)
+            buf[pos + i] = s[i];
+}
+
+// Line plot: connect each X series' points (ordered by the shared Y value) with
+// straight strokes. Honors the same axis selection / row window as the scatter.
+void ctp_plot_line(DataSet *dataSet)
+{
+    ctp_platform_init();
+
+    const bool custom = dataSet->plotProperties->customize_display;
+    const int W = dataSet->style.screen_w;
+    const int H = dataSet->style.screen_h;
+    const char *POINT = dataSet->style.point_single;
+
+    const int y_col = custom ? dataSet->chosen_Y_param : 0;
+    const int row0 = custom ? dataSet->show_begin : 0;
+    const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
+    const int nrows = row1 - row0;
+    if (nrows <= 0 || W < 2 || H < 2)
+    {
+        fprintf(stderr, "ctp_plot_line: nothing to draw (need rows and a >=2x2 canvas)\n");
+        return;
+    }
+
+    // Which columns are the X series?
+    int nx, *xcols;
+    if (custom)
+    {
+        nx = dataSet->chosen_X_param_size;
+        xcols = (int *)malloc((nx > 0 ? nx : 1) * sizeof(int));
+        for (int k = 0; k < nx; k++)
+            xcols[k] = dataSet->chosen_X_param[k];
+    }
+    else
+    {
+        nx = dataSet->db_cols_size - 1;
+        xcols = (int *)malloc((nx > 0 ? nx : 1) * sizeof(int));
+        for (int k = 0; k < nx; k++)
+            xcols[k] = k + 1;
+    }
+    if (nx <= 0)
+    {
+        fprintf(stderr, "ctp_plot_line: need at least one X series\n");
+        free(xcols);
+        return;
+    }
+
+    // Order rows by the shared Y value so connected strokes follow the curve.
+    int *order = (int *)malloc(nrows * sizeof(int));
+    for (int i = 0; i < nrows; i++)
+        order[i] = row0 + i;
+    for (int i = 1; i < nrows; i++)
+    {
+        int key = order[i];
+        CTP_PARAM kv = dataSet->db[y_col][key];
+        int j = i - 1;
+        while (j >= 0 && dataSet->db[y_col][order[j]] > kv)
+        {
+            order[j + 1] = order[j];
+            j--;
+        }
+        order[j + 1] = key;
+    }
+
+    // Data-space bounds (skip empty cells).
+    double xmin = 0, xmax = 0, ymin = 0, ymax = 0;
+    bool xinit = false, yinit = false;
+    for (int k = 0; k < nx; k++)
+        for (int i = 0; i < nrows; i++)
+        {
+            CTP_PARAM v = dataSet->db[xcols[k]][order[i]];
+            if (v == CTP_NULL_VALUE)
+                continue;
+            if (!xinit) { xmin = xmax = v; xinit = true; }
+            else if (v < xmin) xmin = v;
+            else if (v > xmax) xmax = v;
+        }
+    for (int i = 0; i < nrows; i++)
+    {
+        CTP_PARAM v = dataSet->db[y_col][order[i]];
+        if (v == CTP_NULL_VALUE)
+            continue;
+        if (!yinit) { ymin = ymax = v; yinit = true; }
+        else if (v < ymin) ymin = v;
+        else if (v > ymax) ymax = v;
+    }
+    if (!xinit || !yinit)
+    {
+        fprintf(stderr, "ctp_plot_line: no plottable data\n");
+        free(order);
+        free(xcols);
+        return;
+    }
+    double xr = xmax - xmin;
+    if (xr == 0)
+        xr = 1;
+    double yr = ymax - ymin;
+    if (yr == 0)
+        yr = 1;
+
+    // Rasterize each series into the canvas.
+    CtpCanvas *cv = ctp_canvas_new(W, H);
+    if (!cv)
+    {
+        fprintf(stderr, "ctp_plot_line: out of memory\n");
+        free(order);
+        free(xcols);
+        return;
+    }
+    const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
+    for (int k = 0; k < nx; k++)
+    {
+        const char *color = palette[k % 4];
+        bool have_prev = false;
+        int pcx = 0, pcy = 0;
+        for (int i = 0; i < nrows; i++)
+        {
+            CTP_PARAM xv = dataSet->db[xcols[k]][order[i]];
+            CTP_PARAM yv = dataSet->db[y_col][order[i]];
+            if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE)
+            {
+                have_prev = false;
+                continue;
+            }
+            int cx = ctp_canvas_map(xv, xmin, xr, W);
+            int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
+            if (have_prev)
+                ctp_canvas_line(cv, pcx, pcy, cx, cy, color);
+            ctp_canvas_set(cv, cx, cy, POINT, color);
+            have_prev = true;
+            pcx = cx;
+            pcy = cy;
+        }
+    }
+
+    // ---- flush canvas with axes ----
+    const int LAB = 6; // width reserved for the Y-axis scale labels
+    if (print_plot_total)
+    {
+        printf("%d Plots Total\n", nrows);
+        printf("Chart Size : %d x %d\n\n", H, W);
+    }
+
+    // Top border
+    printf("%*s%s", LAB, "", CORNER_TL);
+    for (int x = 0; x < W; x++)
+        printf("%s", CORNER_HZ);
+    printf("%s\n", CORNER_TR);
+
+    // Plot rows, top = ymax
+    for (int cy = 0; cy < H; cy++)
+    {
+        char lab[24];
+        if (cy % 5 == 0 || cy == H - 1)
+        {
+            double yval = ymax - ((double)cy / (H - 1)) * (ymax - ymin);
+            snprintf(lab, sizeof lab, "%.2f", yval);
+        }
+        else
+            lab[0] = '\0';
+        printf("%*s%s", LAB, lab, CORNER_VC);
+
+        for (int cx = 0; cx < W; cx++)
+        {
+            int idx = cy * W + cx;
+            const char *g = &cv->glyph[idx * CTP_CANVAS_GLYPH_BYTES];
+            const char *col = cv->color[idx];
+            if (col)
+                printf("%s%s%s", col, g, COLOR_RESET);
+            else
+                printf("%s", g);
+        }
+        printf("%s\n", CORNER_VC);
+    }
+
+    // Bottom border
+    printf("%*s%s", LAB, "", CORNER_BL);
+    for (int x = 0; x < W; x++)
+        printf("%s", CORNER_HZ);
+    printf("%s\n", CORNER_BR);
+
+    // X-axis ticks: left / middle / right
+    char *xrow = (char *)malloc(W + 1);
+    for (int i = 0; i < W; i++)
+        xrow[i] = ' ';
+    xrow[W] = '\0';
+    char tick[24];
+    snprintf(tick, sizeof tick, "%.2f", xmin);
+    ctp_canvas_place(xrow, W, 0, tick);
+    snprintf(tick, sizeof tick, "%.2f", (xmin + xmax) / 2);
+    ctp_canvas_place(xrow, W, W / 2 - (int)strlen(tick) / 2, tick);
+    snprintf(tick, sizeof tick, "%.2f", xmax);
+    ctp_canvas_place(xrow, W, W - (int)strlen(tick), tick);
+    printf("%*s%s\n", LAB + 1, "", xrow);
+
+    free(xrow);
+    ctp_canvas_free(cv);
+    free(order);
+    free(xcols);
 }
 
 // Sort Function - use to sort all data

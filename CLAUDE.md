@@ -105,8 +105,10 @@ Key facts:
   `ctp_add_data` (column block), `ctp_add_row` (one row), `ctp_add_label`
 - **Axes:** `ctp_select_axes(ds, y_col, x_cols, n)` / `ctp_reset_axes` — pick Y + X columns
   (enables the customized view, defaults the row window to all rows)
-- **Plot:** `ctp_plot` (table+scatter), `ctp_plot_table`, `ctp_plot_scatter`, and `*_search`
-  variants that render `db_search`
+- **Plot:** `ctp_plot` (honors the `table_plot`/`scatter_plot`/`line_plot` flags),
+  `ctp_plot_table`, `ctp_plot_scatter`, `ctp_plot_line`, and `*_search` variants that
+  render `db_search`. The line plot rasterizes via the internal `CtpCanvas` (Bresenham
+  strokes), connecting each X series ordered by the shared Y value.
 - **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_Y_param`)
 - **Search/filter:** `ctp_findOne`, `ctp_findMany` (operators: `e`/`=`/`==`, `ne`/`!=`,
   `lt`/`<`, `lte`/`<=`, `gt`/`>`, `gte`/`>=`), `ctp_reset_find`. `findMany` chains — each
@@ -131,10 +133,12 @@ Typical flow: `initialize → add_column… → (select_axes / find / sort) → 
 - `CTP_NULL_VALUE` is still a float *sentinel* (now cast to `CTP_PARAM` so comparisons
   round-trip). Real data equal to `4.04e-10` would collide; a presence mask is the
   someday-fix. Empty cells render blank in tables.
-- `PlotProperties.line_plot` is unimplemented (only `table_plot` and `scatter_plot` do
-  anything).
+- `PlotProperties.line_plot` defaults to **off** (so `ctp_plot` stays table+scatter unless
+  asked); set the flag or call `ctp_plot_line` directly. The internal `CtpCanvas` (a
+  glyph+color grid with a Bresenham line-draw) is the rasterization foundation the bar and
+  braille renderers will also build on.
 - `ctp_plot_scatter`, if called directly (not via `ctp_plot`), doesn't run
-  `ctp_platform_init()` first.
+  `ctp_platform_init()` first. (`ctp_plot_line` does init itself.)
 - Commit style: `feat:`/`fix:`/`refactor:`/`docs:`/`chore:`.
 
 ## When changing code
