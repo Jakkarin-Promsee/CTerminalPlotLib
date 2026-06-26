@@ -52,6 +52,12 @@ static const char *COLOR_BLUE = "\033[1;34m";
 static const char *COLOR_YELLOW = "\033[1;33m";
 static const char *COLOR_MAGENTA = "\033[1;35m";
 
+// Monochrome-mode glyphs: when color is off, series are told apart by shape and
+// bar sign by fill (instead of red/green). Markers cycle per series.
+static const char *MONO_MARKERS[4] = {"●", "■", "▲", "◆"};
+static const char *MONO_OVERLAP = "⊕"; // 2+ series share a cell
+static const char *MONO_BAR_NEG = "▒"; // negative bar fill
+
 // Factory defaults for the per-dataset mutable style
 CtpStyle ctp_default_style(void)
 {
@@ -61,8 +67,9 @@ CtpStyle ctp_default_style(void)
     s.screen_w = 60;
     s.screen_h = 20;
     s.border_edge = 2;
-    strcpy(s.point_single, "X");
-    strcpy(s.point_overlapped, "O");
+    s.use_color = (getenv("NO_COLOR") == NULL); // honor the NO_COLOR convention
+    strcpy(s.point_single, "●");
+    strcpy(s.point_overlapped, "◉");
     return s;
 }
 
@@ -119,6 +126,10 @@ void ctp_set_graph_point_overlapped(DataSet *dataset, char new_point)
 {
     dataset->style.point_overlapped[0] = new_point;
     dataset->style.point_overlapped[1] = '\0';
+}
+void ctp_set_color(DataSet *dataset, bool on)
+{
+    dataset->style.use_color = on;
 }
 
 // Initial DataSet Function - use to initialize inside variable value
@@ -778,6 +789,7 @@ void ctp_plot_scatter(DataSet *dataSet)
     const int BORDER_EDGE = dataSet->style.border_edge;
     const char *POINT_SINGLE = dataSet->style.point_single;
     const char *POINT_OVERLAPPED = dataSet->style.point_overlapped;
+    const bool use_color = dataSet->style.use_color;
 
     // Copy db to db_cal
     ctp_utils_update_db_cal(dataSet);
@@ -898,24 +910,38 @@ void ctp_plot_scatter(DataSet *dataSet)
                 if (overlapped - col_stack == 0)
                 {
                     col_overlapped %= 4;
-                    if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
-                        ctp_utils_print_color(COLOR_RED);
-                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1))
-                        ctp_utils_print_color(COLOR_BLUE);
-                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2))
-                        ctp_utils_print_color(COLOR_YELLOW);
-                    else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3))
-                        ctp_utils_print_color(COLOR_MAGENTA);
+                    if (use_color)
+                    {
+                        if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
+                            ctp_utils_print_color(COLOR_RED);
+                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1))
+                            ctp_utils_print_color(COLOR_BLUE);
+                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2))
+                            ctp_utils_print_color(COLOR_YELLOW);
+                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3))
+                            ctp_utils_print_color(COLOR_MAGENTA);
+                        else
+                            ctp_utils_print_color(COLOR_RESET);
+                        ctp_utils_plot_with_space(POINT_SINGLE, " ");
+                    }
                     else
-                        ctp_utils_print_color(COLOR_RESET);
-                    ctp_utils_plot_with_space(POINT_SINGLE, " ");
+                    {
+                        // Monochrome: tell series apart by marker shape, not color.
+                        ctp_utils_plot_with_space(MONO_MARKERS[col_overlapped], " ");
+                    }
                 }
                 else
                 {
-                    ctp_utils_print_color(COLOR_GREEN);
-                    ctp_utils_plot_with_space(POINT_OVERLAPPED, " ");
+                    if (use_color)
+                    {
+                        ctp_utils_print_color(COLOR_GREEN);
+                        ctp_utils_plot_with_space(POINT_OVERLAPPED, " ");
+                    }
+                    else
+                        ctp_utils_plot_with_space(MONO_OVERLAP, " ");
                 }
-                ctp_utils_print_color(COLOR_RESET);
+                if (use_color)
+                    ctp_utils_print_color(COLOR_RESET);
             }
             else
             {
@@ -1157,6 +1183,7 @@ void ctp_plot_line(DataSet *dataSet)
     const int W = dataSet->style.screen_w;
     const int H = dataSet->style.screen_h;
     const char *POINT = dataSet->style.point_single;
+    const bool use_color = dataSet->style.use_color;
 
     const int y_col = custom ? dataSet->chosen_Y_param : 0;
     const int row0 = custom ? dataSet->show_begin : 0;
@@ -1256,7 +1283,10 @@ void ctp_plot_line(DataSet *dataSet)
     const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
     for (int k = 0; k < nx; k++)
     {
-        const char *color = palette[k % 4];
+        // Color mode: one hue per series, shared point glyph. Mono: no color,
+        // per-series marker shape so the lines are still distinguishable.
+        const char *color = use_color ? palette[k % 4] : NULL;
+        const char *marker = use_color ? POINT : MONO_MARKERS[k % 4];
         bool have_prev = false;
         int pcx = 0, pcy = 0;
         for (int i = 0; i < nrows; i++)
@@ -1272,7 +1302,7 @@ void ctp_plot_line(DataSet *dataSet)
             int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
             if (have_prev)
                 ctp_canvas_line(cv, pcx, pcy, cx, cy, color);
-            ctp_canvas_set(cv, cx, cy, POINT, color);
+            ctp_canvas_set(cv, cx, cy, marker, color);
             have_prev = true;
             pcx = cx;
             pcy = cy;
@@ -1312,7 +1342,7 @@ void ctp_plot_line(DataSet *dataSet)
 // Fill vertical bars into a canvas: one bar per value, scaled to [lo, hi] with a
 // zero baseline (positive bars rise green, negative bars drop red). Shared by
 // the bar chart and the histogram.
-static void ctp_draw_bars(CtpCanvas *cv, const double *vals, int n, double lo, double hi)
+static void ctp_draw_bars(CtpCanvas *cv, const double *vals, int n, double lo, double hi, bool use_color)
 {
     const int W = cv->w, H = cv->h;
     double range = hi - lo;
@@ -1328,13 +1358,17 @@ static void ctp_draw_bars(CtpCanvas *cv, const double *vals, int n, double lo, d
     for (int b = 0; b < n; b++)
     {
         int top_cy = (H - 1) - ctp_canvas_map(vals[b], lo, range, H);
-        const char *color = (vals[b] >= 0) ? COLOR_GREEN : COLOR_RED;
+        bool positive = (vals[b] >= 0);
+        // Color mode: sign by hue (green up / red down), solid fill. Mono: sign
+        // by fill (█ up / ▒ down), no color.
+        const char *color = use_color ? (positive ? COLOR_GREEN : COLOR_RED) : NULL;
+        const char *glyph = (use_color || positive) ? "█" : MONO_BAR_NEG;
         int from = top_cy < base_cy ? top_cy : base_cy;
         int to = top_cy < base_cy ? base_cy : top_cy;
         int x0 = b * slot;
         for (int cx = x0; cx < x0 + barw && cx < W; cx++)
             for (int cy = from; cy <= to; cy++)
-                ctp_canvas_set(cv, cx, cy, "█", color);
+                ctp_canvas_set(cv, cx, cy, glyph, color);
     }
 }
 
@@ -1382,7 +1416,7 @@ void ctp_plot_bar(DataSet *dataSet)
         return;
     }
 
-    ctp_draw_bars(cv, vals, n, lo, hi);
+    ctp_draw_bars(cv, vals, n, lo, hi, dataSet->style.use_color);
 
     const int LAB = 6;
     printf("Bar: %s (%d bars)\n", dataSet->label[val_col], n);
@@ -1480,7 +1514,7 @@ void ctp_plot_histogram(DataSet *dataSet, int bins)
         return;
     }
 
-    ctp_draw_bars(cv, counts, bins, 0, maxc); // counts >= 0 -> all green
+    ctp_draw_bars(cv, counts, bins, 0, maxc, dataSet->style.use_color); // counts >= 0
 
     const int LAB = 6;
     printf("Histogram: %s (%d bins, range %.2f..%.2f)\n", dataSet->label[col], bins, dmin, dmax);

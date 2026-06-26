@@ -122,7 +122,8 @@ Key facts:
 - **Inspect:** `ctp_printf_memory_usage`, `ctp_printf_properties`, `ctp_printf_dataset`
 - **Style (per-dataset):** `ctp_default_style`, and setters that all take the `DataSet*`:
   `ctp_set_table_width`, `ctp_set_table_backspace`, `ctp_set_graph_resolution`,
-  `ctp_set_graph_border`, `ctp_set_graph_point_x/_overlapped`, `ctp_set_*_reset_default`
+  `ctp_set_graph_border`, `ctp_set_graph_point_x/_overlapped`, `ctp_set_color`,
+  `ctp_set_*_reset_default`
 
 Typical flow: `initialize → add_column… → (select_axes / find / sort) → plot → free`.
 
@@ -131,9 +132,13 @@ Typical flow: `initialize → add_column… → (select_axes / find / sort) → 
 - Public symbols are prefixed `ctp_`; internal helpers `ctp_utils_`; file-private state is
   `static`.
 - **Mutable render config is per-dataset** (`DataSet.style`, a `CtpStyle`): table width,
-  back-space, scatter resolution, border, point glyphs. Set via the `ctp_set_*` functions.
-  Decorative glyphs/colors (corners, axes, ANSI colors) remain file-scope `static const`
-  in the `.c` — read-only, so safely shared.
+  back-space, scatter resolution, border, point glyphs, and `use_color`. Set via the
+  `ctp_set_*` functions. Decorative glyphs/colors (corners, axes, ANSI colors, mono markers)
+  remain file-scope `static const` in the `.c` — read-only, so safely shared.
+- **Color vs monochrome:** `style.use_color` (default on; auto-off when the `NO_COLOR` env
+  var is set, toggle with `ctp_set_color`). Mono mode tells series apart by marker *shape*
+  (`MONO_MARKERS` ● ■ ▲ ◆), overlaps with `⊕`, and bar sign by fill (`█` up / `▒` down) —
+  no ANSI emitted. Default point glyphs are `●` / `◉`. Every renderer honors the flag.
 - `CTP_NULL_VALUE` is still a float *sentinel* (now cast to `CTP_PARAM` so comparisons
   round-trip). Real data equal to `4.04e-10` would collide; a presence mask is the
   someday-fix. Empty cells render blank in tables.

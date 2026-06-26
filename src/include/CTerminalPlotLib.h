@@ -31,6 +31,7 @@ typedef struct
     int screen_w;             // scatter plot width  (X resolution)
     int screen_h;             // scatter plot height (Y resolution)
     int border_edge;          // blank border around the scatter plot
+    bool use_color;           // ANSI color on (default) vs monochrome marker mode
     char point_single[8];     // glyph for a single data point
     char point_overlapped[8]; // glyph for overlapping points
 } CtpStyle;
@@ -74,6 +75,7 @@ void ctp_set_graph_resolution(DataSet *dataset, int screen_w, int screen_h);
 void ctp_set_graph_border(DataSet *dataset, int new_border);
 void ctp_set_graph_point_x(DataSet *dataset, char new_point);
 void ctp_set_graph_point_overlapped(DataSet *dataset, char new_point);
+void ctp_set_color(DataSet *dataset, bool on);
 
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
