@@ -121,6 +121,7 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db);
 void ctp_plot_scatter(DataSet *dataSet);
 void ctp_plot_scatter_search(DataSet *dataSet);
 void ctp_plot_line(DataSet *dataSet);
+void ctp_plot_bar(DataSet *dataSet);
 
 // Sort Function - use to sort all data
 void ctp_sort(DataSet *data);

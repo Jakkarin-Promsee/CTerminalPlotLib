@@ -1104,6 +1104,49 @@ static void ctp_canvas_place(char *buf, int w, int pos, const char *s)
             buf[pos + i] = s[i];
 }
 
+// Flush a finished canvas to the terminal: a boxed frame with a Y-axis scale
+// down the left edge (labels every 5th row + the bottom). The caller prints its
+// own X-axis labels afterward (numeric ticks for line, categories for bars).
+static void ctp_canvas_flush(const CtpCanvas *cv, int lab_w, double ymin, double ymax)
+{
+    const int W = cv->w, H = cv->h;
+
+    printf("%*s%s", lab_w, "", CORNER_TL);
+    for (int x = 0; x < W; x++)
+        printf("%s", CORNER_HZ);
+    printf("%s\n", CORNER_TR);
+
+    for (int cy = 0; cy < H; cy++)
+    {
+        char lab[24];
+        if (cy % 5 == 0 || cy == H - 1)
+        {
+            double yval = ymax - ((double)cy / (H - 1)) * (ymax - ymin);
+            snprintf(lab, sizeof lab, "%.2f", yval);
+        }
+        else
+            lab[0] = '\0';
+        printf("%*s%s", lab_w, lab, CORNER_VC);
+
+        for (int cx = 0; cx < W; cx++)
+        {
+            int idx = cy * W + cx;
+            const char *g = &cv->glyph[idx * CTP_CANVAS_GLYPH_BYTES];
+            const char *col = cv->color[idx];
+            if (col)
+                printf("%s%s%s", col, g, COLOR_RESET);
+            else
+                printf("%s", g);
+        }
+        printf("%s\n", CORNER_VC);
+    }
+
+    printf("%*s%s", lab_w, "", CORNER_BL);
+    for (int x = 0; x < W; x++)
+        printf("%s", CORNER_HZ);
+    printf("%s\n", CORNER_BR);
+}
+
 // Line plot: connect each X series' points (ordered by the shared Y value) with
 // straight strokes. Honors the same axis selection / row window as the scatter.
 void ctp_plot_line(DataSet *dataSet)
@@ -1244,43 +1287,7 @@ void ctp_plot_line(DataSet *dataSet)
         printf("Chart Size : %d x %d\n\n", H, W);
     }
 
-    // Top border
-    printf("%*s%s", LAB, "", CORNER_TL);
-    for (int x = 0; x < W; x++)
-        printf("%s", CORNER_HZ);
-    printf("%s\n", CORNER_TR);
-
-    // Plot rows, top = ymax
-    for (int cy = 0; cy < H; cy++)
-    {
-        char lab[24];
-        if (cy % 5 == 0 || cy == H - 1)
-        {
-            double yval = ymax - ((double)cy / (H - 1)) * (ymax - ymin);
-            snprintf(lab, sizeof lab, "%.2f", yval);
-        }
-        else
-            lab[0] = '\0';
-        printf("%*s%s", LAB, lab, CORNER_VC);
-
-        for (int cx = 0; cx < W; cx++)
-        {
-            int idx = cy * W + cx;
-            const char *g = &cv->glyph[idx * CTP_CANVAS_GLYPH_BYTES];
-            const char *col = cv->color[idx];
-            if (col)
-                printf("%s%s%s", col, g, COLOR_RESET);
-            else
-                printf("%s", g);
-        }
-        printf("%s\n", CORNER_VC);
-    }
-
-    // Bottom border
-    printf("%*s%s", LAB, "", CORNER_BL);
-    for (int x = 0; x < W; x++)
-        printf("%s", CORNER_HZ);
-    printf("%s\n", CORNER_BR);
+    ctp_canvas_flush(cv, LAB, ymin, ymax);
 
     // X-axis ticks: left / middle / right
     char *xrow = (char *)malloc(W + 1);
@@ -1300,6 +1307,107 @@ void ctp_plot_line(DataSet *dataSet)
     ctp_canvas_free(cv);
     free(order);
     free(xcols);
+}
+
+// Fill vertical bars into a canvas: one bar per value, scaled to [lo, hi] with a
+// zero baseline (positive bars rise green, negative bars drop red). Shared by
+// the bar chart and the histogram.
+static void ctp_draw_bars(CtpCanvas *cv, const double *vals, int n, double lo, double hi)
+{
+    const int W = cv->w, H = cv->h;
+    double range = hi - lo;
+    if (range == 0)
+        range = 1;
+    int base_cy = (H - 1) - ctp_canvas_map(0.0, lo, range, H); // canvas row of value 0
+
+    int slot = W / n; // columns allotted per bar
+    if (slot < 1)
+        slot = 1;
+    int barw = slot > 2 ? slot - 1 : slot; // leave a 1-col gap when there's room
+
+    for (int b = 0; b < n; b++)
+    {
+        int top_cy = (H - 1) - ctp_canvas_map(vals[b], lo, range, H);
+        const char *color = (vals[b] >= 0) ? COLOR_GREEN : COLOR_RED;
+        int from = top_cy < base_cy ? top_cy : base_cy;
+        int to = top_cy < base_cy ? base_cy : top_cy;
+        int x0 = b * slot;
+        for (int cx = x0; cx < x0 + barw && cx < W; cx++)
+            for (int cy = from; cy <= to; cy++)
+                ctp_canvas_set(cv, cx, cy, "█", color);
+    }
+}
+
+// Bar chart: one vertical bar per row of the value column (chosen Y if axes are
+// selected, else column 0). Bars share a zero baseline so negatives drop below.
+void ctp_plot_bar(DataSet *dataSet)
+{
+    ctp_platform_init();
+
+    const bool custom = dataSet->plotProperties->customize_display;
+    const int W = dataSet->style.screen_w;
+    const int H = dataSet->style.screen_h;
+    const int val_col = custom ? dataSet->chosen_Y_param : 0;
+    const int row0 = custom ? dataSet->show_begin : 0;
+    const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
+    const int n = row1 - row0;
+    if (n <= 0 || W < 2 || H < 2)
+    {
+        fprintf(stderr, "ctp_plot_bar: nothing to draw (need rows and a >=2x2 canvas)\n");
+        return;
+    }
+
+    // Gather bar values (empty cells count as 0) and their range.
+    double *vals = (double *)malloc(n * sizeof(double));
+    double vmin = 0, vmax = 0;
+    bool init = false;
+    for (int i = 0; i < n; i++)
+    {
+        CTP_PARAM v = dataSet->db[val_col][row0 + i];
+        vals[i] = (v == CTP_NULL_VALUE) ? 0.0 : (double)v;
+        if (!init) { vmin = vmax = vals[i]; init = true; }
+        else if (vals[i] < vmin) vmin = vals[i];
+        else if (vals[i] > vmax) vmax = vals[i];
+    }
+    double lo = vmin < 0 ? vmin : 0; // always include the zero baseline
+    double hi = vmax > 0 ? vmax : 0;
+    if (hi == lo)
+        hi = lo + 1;
+
+    CtpCanvas *cv = ctp_canvas_new(W, H);
+    if (!cv)
+    {
+        fprintf(stderr, "ctp_plot_bar: out of memory\n");
+        free(vals);
+        return;
+    }
+
+    ctp_draw_bars(cv, vals, n, lo, hi);
+
+    const int LAB = 6;
+    printf("Bar: %s (%d bars)\n", dataSet->label[val_col], n);
+    ctp_canvas_flush(cv, LAB, lo, hi);
+
+    // X-axis: a row index centered under each bar slot.
+    int slot = W / n;
+    if (slot < 1)
+        slot = 1;
+    char *xrow = (char *)malloc(W + 1);
+    for (int i = 0; i < W; i++)
+        xrow[i] = ' ';
+    xrow[W] = '\0';
+    for (int b = 0; b < n; b++)
+    {
+        char idx[16];
+        snprintf(idx, sizeof idx, "%d", b);
+        int len = (int)strlen(idx);
+        ctp_canvas_place(xrow, W, b * slot + (slot - len) / 2, idx);
+    }
+    printf("%*s%s\n", LAB + 1, "", xrow);
+
+    free(xrow);
+    ctp_canvas_free(cv);
+    free(vals);
 }
 
 // Sort Function - use to sort all data
