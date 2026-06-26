@@ -35,6 +35,7 @@ static void usage(const char *prog)
             "  --y N         vertical / value column index\n"
             "  --x N,N,...   horizontal series column indices\n"
             "  --bins N      histogram bin count (default 10)\n"
+            "  --braille     high-resolution braille strokes for --line (8x)\n"
             "  --no-color    force monochrome (auto-off when piped or NO_COLOR set)\n"
             "  -h, --help    this help\n",
             prog);
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
 {
     const char *file = NULL;
     bool t = false, sc = false, ln = false, bar = false, hist = false;
-    bool no_color = false;
+    bool no_color = false, braille = false;
     int y = -1, xarr[64], xn = 0, bins = 10;
 
     for (int i = 1; i < argc; i++)
@@ -72,6 +73,7 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--bar")) bar = true;
         else if (!strcmp(a, "--hist")) hist = true;
         else if (!strcmp(a, "--no-color")) no_color = true;
+        else if (!strcmp(a, "--braille")) braille = true;
         else if (!strcmp(a, "--y") && i + 1 < argc) y = atoi(argv[++i]);
         else if (!strcmp(a, "--x") && i + 1 < argc) xn = parse_ints(argv[++i], xarr, 64);
         else if (!strcmp(a, "--bins") && i + 1 < argc) bins = atoi(argv[++i]);
@@ -116,6 +118,8 @@ int main(int argc, char **argv)
     // Monochrome when asked, or when stdout isn't an interactive terminal.
     if (no_color || !CTP_ISATTY(CTP_FILENO(stdout)))
         ctp_set_color(ds, false);
+    if (braille)
+        ctp_set_graph_braille(ds, true);
 
     // Axis selection (applies to scatter/line; sets the value column for bar/hist).
     if (y >= 0)

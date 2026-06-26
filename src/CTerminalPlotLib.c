@@ -68,6 +68,7 @@ CtpStyle ctp_default_style(void)
     s.screen_h = 20;
     s.border_edge = 2;
     s.use_color = (getenv("NO_COLOR") == NULL); // honor the NO_COLOR convention
+    s.braille = false;
     strcpy(s.point_single, "●");
     strcpy(s.point_overlapped, "◉");
     return s;
@@ -94,6 +95,7 @@ void ctp_set_graph_reset_default(DataSet *dataset)
     dataset->style.border_edge = d.border_edge;
     strcpy(dataset->style.point_single, d.point_single);
     strcpy(dataset->style.point_overlapped, d.point_overlapped);
+    dataset->style.braille = d.braille;
 }
 void ctp_set_reset_default(DataSet *dataset)
 {
@@ -130,6 +132,10 @@ void ctp_set_graph_point_overlapped(DataSet *dataset, char new_point)
 void ctp_set_color(DataSet *dataset, bool on)
 {
     dataset->style.use_color = on;
+}
+void ctp_set_graph_braille(DataSet *dataset, bool on)
+{
+    dataset->style.braille = on;
 }
 
 // Initial DataSet Function - use to initialize inside variable value
@@ -1173,8 +1179,141 @@ static void ctp_canvas_flush(const CtpCanvas *cv, int lab_w, double ymin, double
     printf("%s\n", CORNER_BR);
 }
 
-// Line plot: connect each X series' points (ordered by the shared Y value) with
-// straight strokes. Honors the same axis selection / row window as the scatter.
+// --- High-resolution Braille rendering --------------------------------------
+// A Braille cell packs a 2x4 dot grid, so a W x H character canvas addresses a
+// 2W x 4H pixel grid — 8x the resolution. Each lit dot maps to a bit of the
+// code point (0x2800 + mask).
+static const unsigned char BRAILLE_BIT[4][2] = {
+    {0x01, 0x08},
+    {0x02, 0x10},
+    {0x04, 0x20},
+    {0x40, 0x80},
+};
+
+// Encode a Basic-Multilingual-Plane code point (3-byte range) as UTF-8.
+static void ctp_utf8_encode(unsigned int cp, char *out)
+{
+    out[0] = (char)(0xE0 | (cp >> 12));
+    out[1] = (char)(0x80 | ((cp >> 6) & 0x3F));
+    out[2] = (char)(0x80 | (cp & 0x3F));
+    out[3] = '\0';
+}
+
+// Light a pixel in the 2W x 4H dot grid and remember its series color per cell.
+static void ctp_braille_set(unsigned char *mask, const char **cellcolor, int w, int h,
+                            int px, int py, const char *color)
+{
+    if (px < 0 || py < 0 || px >= 2 * w || py >= 4 * h)
+        return;
+    int idx = (py / 4) * w + (px / 2);
+    mask[idx] |= BRAILLE_BIT[py % 4][px % 2];
+    if (color)
+        cellcolor[idx] = color;
+}
+
+// Bresenham in pixel space.
+static void ctp_braille_line(unsigned char *mask, const char **cellcolor, int w, int h,
+                             int x0, int y0, int x1, int y1, const char *color)
+{
+    int dx = abs(x1 - x0), dy = abs(y1 - y0);
+    int sx = (x0 < x1) ? 1 : -1, sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy, x = x0, y = y0;
+    while (1)
+    {
+        ctp_braille_set(mask, cellcolor, w, h, x, y, color);
+        if (x == x1 && y == y1)
+            break;
+        int e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x += sx; }
+        if (e2 < dx)  { err += dx; y += sy; }
+    }
+}
+
+// Rasterize each series into the canvas as high-res braille strokes (8x).
+static void ctp_rasterize_braille(CtpCanvas *cv, const DataSet *ds, const int *xcols, int nx,
+                                  int y_col, int row0, int nrows,
+                                  double xmin, double xr, double ymin, double yr, bool use_color)
+{
+    const int W = cv->w, H = cv->h;
+    unsigned char *mask = (unsigned char *)calloc((size_t)W * H, 1);
+    const char **cellcolor = (const char **)calloc((size_t)W * H, sizeof(char *));
+    if (!mask || !cellcolor)
+    {
+        free(mask);
+        free(cellcolor);
+        return;
+    }
+
+    const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
+    for (int k = 0; k < nx; k++)
+    {
+        const char *color = use_color ? palette[k % 4] : NULL;
+        bool have_prev = false;
+        int ppx = 0, ppy = 0;
+        for (int i = 0; i < nrows; i++)
+        {
+            CTP_PARAM xv = ds->db[xcols[k]][row0 + i];
+            CTP_PARAM yv = ds->db[y_col][row0 + i];
+            if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE) { have_prev = false; continue; }
+            int px = ctp_canvas_map(xv, xmin, xr, 2 * W);
+            int py = (4 * H - 1) - ctp_canvas_map(yv, ymin, yr, 4 * H);
+            if (have_prev)
+                ctp_braille_line(mask, cellcolor, W, H, ppx, ppy, px, py, color);
+            else
+                ctp_braille_set(mask, cellcolor, W, H, px, py, color);
+            have_prev = true;
+            ppx = px;
+            ppy = py;
+        }
+    }
+
+    char glyph[CTP_CANVAS_GLYPH_BYTES];
+    for (int c = 0; c < W * H; c++)
+    {
+        if (mask[c] == 0)
+            continue;
+        ctp_utf8_encode(0x2800u + mask[c], glyph);
+        ctp_canvas_set(cv, c % W, c / W, glyph, cellcolor[c]);
+    }
+    free(mask);
+    free(cellcolor);
+}
+
+// Rasterize each series into the canvas as ordinary char-cell strokes + markers.
+static void ctp_rasterize_lines(CtpCanvas *cv, const DataSet *ds, const int *xcols, int nx,
+                                int y_col, int row0, int nrows,
+                                double xmin, double xr, double ymin, double yr,
+                                bool use_color, const char *point)
+{
+    const int W = cv->w, H = cv->h;
+    const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
+    for (int k = 0; k < nx; k++)
+    {
+        // Color mode: one hue per series, shared point glyph. Mono: no color,
+        // per-series marker shape so the lines are still distinguishable.
+        const char *color = use_color ? palette[k % 4] : NULL;
+        const char *marker = use_color ? point : MONO_MARKERS[k % 4];
+        bool have_prev = false;
+        int pcx = 0, pcy = 0;
+        for (int i = 0; i < nrows; i++)
+        {
+            CTP_PARAM xv = ds->db[xcols[k]][row0 + i];
+            CTP_PARAM yv = ds->db[y_col][row0 + i];
+            if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE) { have_prev = false; continue; }
+            int cx = ctp_canvas_map(xv, xmin, xr, W);
+            int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
+            if (have_prev)
+                ctp_canvas_line(cv, pcx, pcy, cx, cy, color);
+            ctp_canvas_set(cv, cx, cy, marker, color);
+            have_prev = true;
+            pcx = cx;
+            pcy = cy;
+        }
+    }
+}
+
+// Line plot: connect each X series' points (in row order) with straight strokes,
+// or high-res braille when style.braille is on. Same axis selection as scatter.
 void ctp_plot_line(DataSet *dataSet)
 {
     ctp_platform_init();
@@ -1265,34 +1404,10 @@ void ctp_plot_line(DataSet *dataSet)
         free(xcols);
         return;
     }
-    const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
-    for (int k = 0; k < nx; k++)
-    {
-        // Color mode: one hue per series, shared point glyph. Mono: no color,
-        // per-series marker shape so the lines are still distinguishable.
-        const char *color = use_color ? palette[k % 4] : NULL;
-        const char *marker = use_color ? POINT : MONO_MARKERS[k % 4];
-        bool have_prev = false;
-        int pcx = 0, pcy = 0;
-        for (int i = 0; i < nrows; i++)
-        {
-            CTP_PARAM xv = dataSet->db[xcols[k]][(row0 + i)];
-            CTP_PARAM yv = dataSet->db[y_col][(row0 + i)];
-            if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE)
-            {
-                have_prev = false;
-                continue;
-            }
-            int cx = ctp_canvas_map(xv, xmin, xr, W);
-            int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
-            if (have_prev)
-                ctp_canvas_line(cv, pcx, pcy, cx, cy, color);
-            ctp_canvas_set(cv, cx, cy, marker, color);
-            have_prev = true;
-            pcx = cx;
-            pcy = cy;
-        }
-    }
+    if (dataSet->style.braille)
+        ctp_rasterize_braille(cv, dataSet, xcols, nx, y_col, row0, nrows, xmin, xr, ymin, yr, use_color);
+    else
+        ctp_rasterize_lines(cv, dataSet, xcols, nx, y_col, row0, nrows, xmin, xr, ymin, yr, use_color, POINT);
 
     // ---- flush canvas with axes ----
     const int LAB = 6; // width reserved for the Y-axis scale labels

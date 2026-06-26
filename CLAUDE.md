@@ -151,6 +151,11 @@ Typical flow: `initialize → add_column… → (select_axes / find / sort) → 
   var is set, toggle with `ctp_set_color`). Mono mode tells series apart by marker *shape*
   (`MONO_MARKERS` ● ■ ▲ ◆), overlaps with `⊕`, and bar sign by fill (`█` up / `▒` down) —
   no ANSI emitted. Default point glyphs are `●` / `◉`. Every renderer honors the flag.
+- **Braille hi-res:** `style.braille` (default off; `ctp_set_graph_braille`) routes
+  `ctp_plot_line` through a 2×4-dot rasterizer — a `W×H` canvas addresses a `2W×4H` pixel
+  grid (8×), each cell emitting `0x2800 + mask`. Reuses the same bounds + `ctp_canvas_flush`
+  frame as the block path; only the rasterization differs (`ctp_rasterize_braille` vs
+  `ctp_rasterize_lines`). CLI: `--braille`.
 - `CTP_NULL_VALUE` is still a float *sentinel* (now cast to `CTP_PARAM` so comparisons
   round-trip). Real data equal to `4.04e-10` would collide; a presence mask is the
   someday-fix. Empty cells render blank in tables.
