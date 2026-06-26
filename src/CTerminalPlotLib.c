@@ -9,56 +9,62 @@
 #endif
 #include "./include/CTerminalPlotLib.h"
 
-// Table border assets initialize
-int TABLE_WIDTH = 10;
-int BACK_SPACE = 2;
+// ---------------------------------------------------------------------------
+// Decorative render constants (read-only, shared by every dataset). Glyphs and
+// colors are never mutated, so file-scope const is fine here. The *mutable*
+// render config (table width, resolution, point glyphs, ...) is per-dataset:
+// see CtpStyle and ctp_default_style().
+// ---------------------------------------------------------------------------
 
-char *CORNER_TL = "┌";
-char *CORNER_TR = "┐";
-char *CORNER_BL = "└";
-char *CORNER_BR = "┘";
-char *CORNER_THZ = "┴";
-char *CORNER_BHZ = "┬";
-char *CORNER_LVC = "├";
-char *CORNER_RVC = "┤";
-char *CORNER_ALL = "┼";
-char *CORNER_VC = "│";
-char *CORNER_HZ = "─";
+// Table border glyphs
+static const char *CORNER_TL = "┌";
+static const char *CORNER_TR = "┐";
+static const char *CORNER_BL = "└";
+static const char *CORNER_BR = "┘";
+static const char *CORNER_THZ = "┴";
+static const char *CORNER_BHZ = "┬";
+static const char *CORNER_LVC = "├";
+static const char *CORNER_RVC = "┤";
+static const char *CORNER_ALL = "┼";
+static const char *CORNER_VC = "│";
+static const char *CORNER_HZ = "─";
 
-// 2D Graph Plot assets initialize
-int SCREEN_H = 20;
-int SCREEN_W = 60;
-int BORDER_EDGE = 2;
-int Y_SCALE_LENGTH = 5;
-int X_SCALE_LENGTH = 5;
-int Y_SCALE_MOD = 5;
-int X_SCALE_MOD = 15;
-int SPACE_FRONT = 0;
-int SPACE_BACK = 0;
+// Scatter scale layout
+static const int Y_SCALE_LENGTH = 5;
+static const int X_SCALE_LENGTH = 5;
+static const int Y_SCALE_MOD = 5;
+static const int X_SCALE_MOD = 15;
+static const int SPACE_FRONT = 0;
+static const int SPACE_BACK = 0;
 
-char *XY = "┼";
-char *Y = "│";
-char *X = "─";
-char *Y_ORIGIN = "┼";
-char *X_ORIGIN = "┼";
+// Scatter axis glyphs
+static const char *XY = "┼";
+static const char *Y = "│";
+static const char *X = "─";
+static const char *Y_ORIGIN = "┼";
+static const char *X_ORIGIN = "┼";
 
-// Writable buffers (not string literals): the point glyph can be changed at runtime
-char POINT_SINGLE[] = "X";
-char POINT_OVERLAPPED[] = "O";
-char *P2 = "O";
+// ANSI colors
+static const char *COLOR_RESET = "\033[0m";
+static const char *COLOR_RED = "\033[1;31m";
+static const char *COLOR_GREEN = "\033[1;32m";
+static const char *COLOR_BLUE = "\033[1;34m";
+static const char *COLOR_YELLOW = "\033[1;33m";
+static const char *COLOR_MAGENTA = "\033[1;35m";
 
-char *COLOR_RESET = "\033[0m";
-char *COLOR_RED = "\033[1;31m";
-char *COLOR_GREEN = "\033[1;32m";
-char *COLOR_BLUE = "\033[1;34m";
-char *COLOR_YELLOW = "\033[1;33m";
-char *COLOR_MAGENTA = "\033[1;35m";
-
-// BACK_SPACE | TABLE_WIDTH | SCREEN_H | SCREEN_W | BORDER_EDGE
-// File-private: these back the "reset to default" feature and are not public API.
-static bool DEFAULT_SAVE_BOOL[5] = {false, false, false, false, false};
-static int *DEFAULT_SAVE_POINTER[5];
-static int DEFAULT_SAVE_VALUE[5];
+// Factory defaults for the per-dataset mutable style
+CtpStyle ctp_default_style(void)
+{
+    CtpStyle s;
+    s.table_width = 10;
+    s.back_space = 2;
+    s.screen_w = 60;
+    s.screen_h = 20;
+    s.border_edge = 2;
+    strcpy(s.point_single, "X");
+    strcpy(s.point_overlapped, "O");
+    return s;
+}
 
 // Test Access Library - use to comfirm that otherfile can access these function
 bool ctp_isActive()
@@ -66,62 +72,53 @@ bool ctp_isActive()
     return true;
 }
 
-// Setting Plot Function - use to setting table and scatter plot properties
-void ctp_set_table_reset_default()
+// Setting Plot Function - per-dataset style setters
+void ctp_set_table_reset_default(DataSet *dataset)
 {
-    for (int i = 0; i < 2; i++)
-        if (DEFAULT_SAVE_BOOL[i])
-            *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
+    CtpStyle d = ctp_default_style();
+    dataset->style.table_width = d.table_width;
+    dataset->style.back_space = d.back_space;
 }
-void ctp_set_graph_reset_default()
+void ctp_set_graph_reset_default(DataSet *dataset)
 {
-    for (int i = 2; i < 5; i++)
-        if (DEFAULT_SAVE_BOOL[i])
-            *DEFAULT_SAVE_POINTER[i] = DEFAULT_SAVE_VALUE[i];
+    CtpStyle d = ctp_default_style();
+    dataset->style.screen_w = d.screen_w;
+    dataset->style.screen_h = d.screen_h;
+    dataset->style.border_edge = d.border_edge;
+    strcpy(dataset->style.point_single, d.point_single);
+    strcpy(dataset->style.point_overlapped, d.point_overlapped);
 }
-void ctp_set_reset_default()
+void ctp_set_reset_default(DataSet *dataset)
 {
-    ctp_set_graph_reset_default();
-    ctp_set_table_reset_default();
+    ctp_set_graph_reset_default(dataset);
+    ctp_set_table_reset_default(dataset);
 }
-void ctp_set_table_backspace(int new_backspace)
+void ctp_set_table_backspace(DataSet *dataset, int new_backspace)
 {
-    BACK_SPACE = new_backspace;
-
-    DEFAULT_SAVE_POINTER[0] = &BACK_SPACE;
-    DEFAULT_SAVE_VALUE[0] = BACK_SPACE;
+    dataset->style.back_space = new_backspace;
 }
-void ctp_set_table_width(int new_width)
+void ctp_set_table_width(DataSet *dataset, int new_width)
 {
-    TABLE_WIDTH = new_width;
-
-    DEFAULT_SAVE_POINTER[1] = &TABLE_WIDTH;
-    DEFAULT_SAVE_VALUE[1] = TABLE_WIDTH;
+    dataset->style.table_width = new_width;
 }
-void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H)
+void ctp_set_graph_resolution(DataSet *dataset, int screen_w, int screen_h)
 {
-    SCREEN_H = _SCREEN_H;
-    SCREEN_W = _SCREEN_W;
-
-    DEFAULT_SAVE_POINTER[2] = &SCREEN_H;
-    DEFAULT_SAVE_VALUE[2] = SCREEN_H;
-    DEFAULT_SAVE_POINTER[3] = &SCREEN_W;
-    DEFAULT_SAVE_VALUE[3] = SCREEN_W;
+    dataset->style.screen_w = screen_w;
+    dataset->style.screen_h = screen_h;
 }
-void ctp_set_graph_border(int new_border)
+void ctp_set_graph_border(DataSet *dataset, int new_border)
 {
-    BORDER_EDGE = new_border;
-
-    DEFAULT_SAVE_POINTER[4] = &BORDER_EDGE;
-    DEFAULT_SAVE_VALUE[4] = BORDER_EDGE;
+    dataset->style.border_edge = new_border;
 }
-void ctp_set_graph_point_x(char new_point)
+void ctp_set_graph_point_x(DataSet *dataset, char new_point)
 {
-    *POINT_SINGLE = new_point;
+    dataset->style.point_single[0] = new_point;
+    dataset->style.point_single[1] = '\0';
 }
-void ctp_set_graph_point_overlapped(char new_point)
+void ctp_set_graph_point_overlapped(DataSet *dataset, char new_point)
 {
-    *POINT_OVERLAPPED = new_point;
+    dataset->style.point_overlapped[0] = new_point;
+    dataset->style.point_overlapped[1] = '\0';
 }
 
 // Initial DataSet Function - use to initialize inside variable value
@@ -170,6 +167,9 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     dataset->plotProperties = ctp_initialize_plotproperties();
     if (!dataset->plotProperties)
         goto fail;
+
+    // Per-dataset render style starts at the factory defaults
+    dataset->style = ctp_default_style();
 
     // Remaining scalar properties (calloc already zeroed them; set for clarity)
     dataset->db_cols_size = 0;
@@ -510,6 +510,9 @@ void ctp_utils_sort_db_by_y_param(DataSet *data)
 }
 void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[])
 {
+    const int SCREEN_W = dataSet->style.screen_w;
+    const int SCREEN_H = dataSet->style.screen_h;
+
     // Find min and max of X and Y axis (0 : x, 1 : y)
     bool initialDone[2] = {};
     for (int i = 0; i < dataSet->db_cols_size; i++)
@@ -678,6 +681,9 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
     ctp_platform_init();
 
+    const int TABLE_WIDTH = dataSet->style.table_width;
+    const int BACK_SPACE = dataSet->style.back_space;
+
     // Print header
     if (print_plot_total)
         printf("%d Plots Total\n", (dataSet->plotProperties->customize_display) ? (dataSet->show_end - dataSet->show_begin) : dataSet->db_rows_size);
@@ -765,6 +771,12 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 
 void ctp_plot_scatter(DataSet *dataSet)
 {
+    const int SCREEN_W = dataSet->style.screen_w;
+    const int SCREEN_H = dataSet->style.screen_h;
+    const int BORDER_EDGE = dataSet->style.border_edge;
+    const char *POINT_SINGLE = dataSet->style.point_single;
+    const char *POINT_OVERLAPPED = dataSet->style.point_overlapped;
+
     // Copy db to db_cal
     ctp_utils_update_db_cal(dataSet);
 

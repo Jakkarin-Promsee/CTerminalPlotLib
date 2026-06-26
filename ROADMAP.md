@@ -8,11 +8,14 @@ repo in a working, committable state.
 - **Level 0** — folded into the work below: working build came with Level 2, the test
   harness + golden snapshots with Level 1. (Toolchain not modernized; still GCC 6.3.0.)
 - **Level 1 — ✅ DONE** (commit `fix: Level 1`)
-- **Level 2 — ✅ DONE** (commit `refactor: Level 2`), except **2.3 deferred to Level 4**
-  (render-config globals overlap with the matplotlib redesign; search flags were made
-  file-private).
-- **Level 3 — ✅ DONE** (commit `refactor: Level 3` / portability).
-- **Levels 4–5** — pending. Level 4 is the user's matplotlib-style redesign.
+- **Level 2 — ✅ DONE** (`refactor: Level 2`). The deferred 2.3 (per-dataset config) is
+  now done as part of Level 4 below.
+- **Level 3 — ✅ DONE** (`refactor: Level 3` / portability).
+- **Level 4 — in progress**: ergonomic data API (`ctp_add_column`), usable axis selection
+  (`ctp_select_axes`), per-dataset `CtpStyle` config (2.3), public typo renames (4.4),
+  sentinel cast fix (4.3, partial). Remaining: ternary-soup readability (4.1), const pass
+  (4.2), quicksort pivot (4.6), and the new-feature decisions (from the post-refactor critique).
+- **Level 5** — pending (docs / CI / packaging / README rewrite).
 
 ## How to use this doc
 - Levels are ordered by dependency: later levels assume earlier ones are done.

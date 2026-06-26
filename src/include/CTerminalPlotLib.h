@@ -23,6 +23,18 @@ typedef struct
     bool line_plot;
 } PlotProperties;
 
+// Per-dataset render style — the mutable config that used to be global variables.
+typedef struct
+{
+    int table_width;          // glyph cells per table column
+    int back_space;           // right padding inside each table cell
+    int screen_w;             // scatter plot width  (X resolution)
+    int screen_h;             // scatter plot height (Y resolution)
+    int border_edge;          // blank border around the scatter plot
+    char point_single[8];     // glyph for a single data point
+    char point_overlapped[8]; // glyph for overlapping points
+} CtpStyle;
+
 typedef struct
 {
     int max_param;                  // Maximum parameters in the dataset
@@ -42,65 +54,26 @@ typedef struct
     int show_begin;                 // Start display index
     int show_end;                   // End display index
     PlotProperties *plotProperties; // Use to keep ploting poproties
+    CtpStyle style;                 // Per-dataset render style (see ctp_default_style)
 } DataSet;
 
-// Table border assets
-extern int TABLE_WIDTH;
-extern int BACK_SPACE;
-
-extern char *CORNER_TL;
-extern char *CORNER_TR;
-extern char *CORNER_BL;
-extern char *CORNER_BR;
-extern char *CORNER_THZ;
-extern char *CORNER_BHZ;
-extern char *CORNER_LVC;
-extern char *CORNER_RVC;
-extern char *CORNER_ALL;
-extern char *CORNER_VC;
-extern char *CORNER_HZ;
-
-// 2D Graph Plot assets
-extern int SCREEN_H;
-extern int SCREEN_W;
-extern int BORDER_EDGE;
-extern int Y_SCALE_LENGTH;
-extern int X_SCALE_LENGTH;
-extern int Y_SCALE_MOD;
-extern int X_SCALE_MOD;
-extern int SPACE_FRONT;
-extern int SPACE_BACK;
-
-extern char *XY;
-extern char *Y;
-extern char *X;
-extern char *Y_ORIGIN;
-extern char *X_ORIGIN;
-
-extern char POINT_SINGLE[];
-extern char POINT_OVERLAPPED[];
-extern char *P2;
-
-extern char *COLOR_RESET;
-extern char *COLOR_RED;
-extern char *COLOR_GREEN;
-extern char *COLOR_BLUE;
-extern char *COLOR_YELLOW;
-extern char *COLOR_MAGENTA;
+// Render glyphs and colors are internal constants in CTerminalPlotLib.c.
+// The mutable render config is per-dataset: see CtpStyle and the ctp_set_* setters.
 
 // Test Access Library - use to comfirm that otherfile can access these function
 bool ctp_isActive();
 
-// Setting Plot Function - use to setting table and scatter plot properties
-void ctp_set_table_reset_default();
-void ctp_set_graph_reset_default();
-void ctp_set_reset_default();
-void ctp_set_table_backspace(int new_backspace);
-void ctp_set_table_width(int new_width);
-void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H);
-void ctp_set_graph_border(int new_border);
-void ctp_set_graph_point_x(char new_point);
-void ctp_set_graph_point_overlapped(char new_point);
+// Style: factory defaults + per-dataset setters
+CtpStyle ctp_default_style(void);
+void ctp_set_table_reset_default(DataSet *dataset);
+void ctp_set_graph_reset_default(DataSet *dataset);
+void ctp_set_reset_default(DataSet *dataset);
+void ctp_set_table_backspace(DataSet *dataset, int new_backspace);
+void ctp_set_table_width(DataSet *dataset, int new_width);
+void ctp_set_graph_resolution(DataSet *dataset, int screen_w, int screen_h);
+void ctp_set_graph_border(DataSet *dataset, int new_border);
+void ctp_set_graph_point_x(DataSet *dataset, char new_point);
+void ctp_set_graph_point_overlapped(DataSet *dataset, char new_point);
 
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);

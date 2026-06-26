@@ -101,7 +101,10 @@ Key facts:
 ## API surface (prefix `ctp_`)
 
 - **Lifecycle:** `ctp_initialize_dataset`, `ctp_initialize_plotproperties`, `ctp_free_dataset`
-- **Load data:** `ctp_add_data` (column block), `ctp_add_row` (one row), `ctp_add_label`
+- **Load data:** `ctp_add_column` (preferred: one labelled column from a 1-D array),
+  `ctp_add_data` (column block), `ctp_add_row` (one row), `ctp_add_label`
+- **Axes:** `ctp_select_axes(ds, y_col, x_cols, n)` / `ctp_reset_axes` — pick Y + X columns
+  (enables the customized view, defaults the row window to all rows)
 - **Plot:** `ctp_plot` (table+scatter), `ctp_plot_table`, `ctp_plot_scatter`, and `*_search`
   variants that render `db_search`
 - **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_Y_param`)
@@ -111,21 +114,23 @@ Key facts:
 - **Analyze:** `ctp_analyze_mean` / `_sd` (population std dev) / `_md` (mean abs deviation),
   plus `_search` variants. Return malloc'd arrays (one per column); **caller frees**.
 - **Inspect:** `ctp_printf_memory_usage`, `ctp_printf_properties`, `ctp_printf_dataset`
-- **Config:** `ctp_set_graph_resolution`, `ctp_set_table_width`, `ctp_set_table_backspace`,
-  `ctp_set_graph_border`, `ctp_set_*_reset_default`
+- **Style (per-dataset):** `ctp_default_style`, and setters that all take the `DataSet*`:
+  `ctp_set_table_width`, `ctp_set_table_backspace`, `ctp_set_graph_resolution`,
+  `ctp_set_graph_border`, `ctp_set_graph_point_x/_overlapped`, `ctp_set_*_reset_default`
 
-Typical flow: `initialize → add_data → add_label → (find/sort) → plot → free`.
+Typical flow: `initialize → add_column… → (select_axes / find / sort) → plot → free`.
 
 ## Conventions & remaining rough edges
 
 - Public symbols are prefixed `ctp_`; internal helpers `ctp_utils_`; file-private state is
   `static`.
-- **Baked-in API typos** still present (slated for a deliberate Level 4 rename): `avaliable_*`
-  parameter names, `ctp_set_grap_point_*` ("grap"). Don't fix piecemeal.
-- **Process-global render config** (`TABLE_WIDTH`, `SCREEN_W/H`, colors, glyphs) is still
-  global, not per-`DataSet` — intentionally deferred to the Level 4 redesign. Not reentrant.
-- `CTP_NULL_VALUE` is a float sentinel compared with `==` — fragile; Level 4 should replace
-  it with a presence mask.
+- **Mutable render config is per-dataset** (`DataSet.style`, a `CtpStyle`): table width,
+  back-space, scatter resolution, border, point glyphs. Set via the `ctp_set_*` functions.
+  Decorative glyphs/colors (corners, axes, ANSI colors) remain file-scope `static const`
+  in the `.c` — read-only, so safely shared.
+- `CTP_NULL_VALUE` is still a float *sentinel* (now cast to `CTP_PARAM` so comparisons
+  round-trip). Real data equal to `4.04e-10` would collide; a presence mask is the
+  someday-fix. Empty cells render blank in tables.
 - `PlotProperties.line_plot` is unimplemented (only `table_plot` and `scatter_plot` do
   anything).
 - `ctp_plot_scatter`, if called directly (not via `ctp_plot`), doesn't run
