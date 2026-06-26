@@ -4,6 +4,16 @@ A leveled plan to take this from "impressive year-1 project" to "portfolio piece
 proves C mastery." We execute **one level at a time, top to bottom.** Each level leaves the
 repo in a working, committable state.
 
+## Status (branch `refactor/levels-1-3`)
+- **Level 0** — folded into the work below: working build came with Level 2, the test
+  harness + golden snapshots with Level 1. (Toolchain not modernized; still GCC 6.3.0.)
+- **Level 1 — ✅ DONE** (commit `fix: Level 1`)
+- **Level 2 — ✅ DONE** (commit `refactor: Level 2`), except **2.3 deferred to Level 4**
+  (render-config globals overlap with the matplotlib redesign; search flags were made
+  file-private).
+- **Level 3 — ✅ DONE** (commit `refactor: Level 3` / portability).
+- **Levels 4–5** — pending. Level 4 is the user's matplotlib-style redesign.
+
 ## How to use this doc
 - Levels are ordered by dependency: later levels assume earlier ones are done.
 - Each task has **What / Why / How / Done when**. Check the box when it's merged.

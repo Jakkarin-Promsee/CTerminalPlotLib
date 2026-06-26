@@ -3,8 +3,10 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#include <windows.h>
 #include <locale.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "./include/CTerminalPlotLib.h"
 
 // Table border assets initialize
@@ -530,10 +532,21 @@ void ctp_utils_print_color(const char s[])
 
 // Main Function - (user call) use to handle table and scatter plot
 static bool print_plot_total = false;
+
+// Prepare the terminal for UTF-8 + ANSI output. On Windows this switches the
+// console output code page to UTF-8; modern Linux/macOS terminals already use
+// UTF-8, so there only the locale is set.
+static void ctp_platform_init(void)
+{
+    setlocale(LC_ALL, "");
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
 void ctp_plot(DataSet *dataSet)
 {
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
+    ctp_platform_init();
 
     if (dataSet->plotProperties->table_plot)
         ctp_plot_table(dataSet);
@@ -582,8 +595,7 @@ void ctp_plot_table(const DataSet *dataSet)
 }
 void ctp_plot_table_search(DataSet *dataSet)
 {
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
+    ctp_platform_init();
     bool temp_customize = dataSet->plotProperties->customize_display;
     int temp_rows_size = dataSet->db_rows_size;
 
@@ -598,8 +610,7 @@ void ctp_plot_table_search(DataSet *dataSet)
 }
 void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 {
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, "");
+    ctp_platform_init();
 
     // Print header
     if (print_plot_total)

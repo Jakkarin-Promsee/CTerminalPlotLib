@@ -4,8 +4,8 @@
 
 ## **Features**
 
-✅ **Lightweight & Optimized** – Designed for **embedded systems** and low-power platforms like **Arduino** and **NodeMCU**, with minimal memory and CPU usage.  
-✅ **Versatile Data Types** – Supports **`bool` (1-bit), `char` (1-byte), `int` (4-byte), `float` (8-byte), and `double` (16-byte)** for flexible data handling.  
+✅ **Lightweight & Optimized** – Small, dependency-free core that runs in any UTF-8 + ANSI terminal on **Windows, Linux, and macOS**, with minimal memory and CPU usage.  
+✅ **Versatile Data Types** – The element type is a single `typedef` (`CTP_PARAM`, default `float`) you can switch to **`char` (1 byte), `int` (4 bytes), `float` (4 bytes), or `double` (8 bytes)**.  
 ✅ **Dynamic Memory Management** – Automatically adjusts **rows, columns, and parameters** to optimize memory usage efficiently.  
 ✅ **Matplotlib-Like Syntax** – Provides an intuitive API similar to **Matplotlib**, making it easy to use for those familiar with Python-based plotting.  
 ✅ **Multi-Parameter Plotting** – Supports **multiple variables** with **distinct colors** for better graph visualization.  
