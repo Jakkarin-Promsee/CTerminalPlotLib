@@ -1758,3 +1758,145 @@ CTP_PARAM *ctp_analyze_md_search(DataSet *dataSet)
 
     return md;
 }
+
+// ---------------------------------------------------------------------------
+// Data I/O — read a CSV into a DataSet. First row is the header (column names);
+// remaining rows are numeric. Blank / non-numeric cells become CTP_NULL_VALUE
+// (rendered as empty). Simple comma split: no quoted-field / embedded-comma
+// support. Caller frees the returned DataSet with ctp_free_dataset.
+// ---------------------------------------------------------------------------
+
+// Portable strdup (strdup is POSIX, not C11).
+static char *ctp_strdup(const char *s)
+{
+    size_t n = strlen(s) + 1;
+    char *p = (char *)malloc(n);
+    if (p)
+        memcpy(p, s, n);
+    return p;
+}
+
+// Split a line in place on commas, recording up to `max` field pointers. Empty
+// fields are kept (out[i] -> ""). Returns the true field count.
+static int ctp_csv_split(char *line, char **out, int max)
+{
+    int n = 0;
+    char *start = line;
+    for (char *p = line;; p++)
+    {
+        if (*p == ',' || *p == '\0')
+        {
+            bool end = (*p == '\0');
+            if (n < max)
+                out[n] = start;
+            n++;
+            *p = '\0';
+            start = p + 1;
+            if (end)
+                break;
+        }
+    }
+    return n;
+}
+
+DataSet *ctp_read_csv(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    if (!f)
+    {
+        fprintf(stderr, "ctp_read_csv: cannot open '%s'\n", path);
+        return NULL;
+    }
+
+    char line[4096];
+
+    // --- header: column count, names, longest name length ---
+    if (!fgets(line, sizeof line, f))
+    {
+        fprintf(stderr, "ctp_read_csv: '%s' is empty\n", path);
+        fclose(f);
+        return NULL;
+    }
+    line[strcspn(line, "\r\n")] = '\0';
+
+    int ncols = 1;
+    for (char *p = line; *p; p++)
+        if (*p == ',')
+            ncols++;
+
+    char **fields = (char **)malloc(ncols * sizeof(char *));
+    char **names = (char **)malloc(ncols * sizeof(char *));
+    ctp_csv_split(line, fields, ncols);
+    int max_name = 1;
+    for (int c = 0; c < ncols; c++)
+    {
+        names[c] = ctp_strdup(fields[c]); // copy: the line buffer gets reused
+        int len = (int)strlen(names[c]);
+        if (len + 1 > max_name)
+            max_name = len + 1;
+    }
+
+    // --- count data rows (non-blank lines) ---
+    int nrows = 0;
+    while (fgets(line, sizeof line, f))
+    {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (line[0] != '\0')
+            nrows++;
+    }
+
+    DataSet *ds = ctp_initialize_dataset(ncols, max_name, nrows > 0 ? nrows : 1);
+    if (!ds)
+    {
+        for (int c = 0; c < ncols; c++)
+            free(names[c]);
+        free(names);
+        free(fields);
+        fclose(f);
+        return NULL;
+    }
+
+    // Labels (the parse below fills the columns row by row).
+    ds->db_cols_size = ncols;
+    ds->db_cols_size_label = ncols;
+    for (int c = 0; c < ncols; c++)
+    {
+        strncpy(ds->label[c], names[c], max_name - 1);
+        ds->label[c][max_name - 1] = '\0';
+    }
+
+    // --- second pass: parse each data row ---
+    rewind(f);
+    if (!fgets(line, sizeof line, f)) // skip header
+    {
+        // File shrank between passes? Nothing more to read.
+    }
+    CTP_PARAM *vals = (CTP_PARAM *)malloc(ncols * sizeof(CTP_PARAM));
+    while (fgets(line, sizeof line, f))
+    {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (line[0] == '\0')
+            continue;
+        int nf = ctp_csv_split(line, fields, ncols);
+        for (int c = 0; c < ncols; c++)
+        {
+            if (c < nf && fields[c][0] != '\0')
+            {
+                char *endp;
+                double v = strtod(fields[c], &endp);
+                vals[c] = (endp == fields[c]) ? CTP_NULL_VALUE : (CTP_PARAM)v;
+            }
+            else
+                vals[c] = CTP_NULL_VALUE; // blank / missing cell
+        }
+        ctp_add_row(ds, vals);
+    }
+
+    free(vals);
+    for (int c = 0; c < ncols; c++)
+        free(names[c]);
+    free(names);
+    free(fields);
+    fclose(f);
+    return ds;
+}

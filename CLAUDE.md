@@ -103,6 +103,9 @@ Key facts:
 - **Lifecycle:** `ctp_initialize_dataset`, `ctp_initialize_plotproperties`, `ctp_free_dataset`
 - **Load data:** `ctp_add_column` (preferred: one labelled column from a 1-D array),
   `ctp_add_data` (column block), `ctp_add_row` (one row), `ctp_add_label`
+- **Data I/O:** `ctp_read_csv(path)` — header row → labels, numeric rows → columns,
+  blank/non-numeric cells → `CTP_NULL_VALUE`. Simple comma split (no quoted fields).
+  Returns a fresh `DataSet*` (caller frees). Sample at `examples/data/sample.csv`.
 - **Axes:** `ctp_select_axes(ds, y_col, x_cols, n)` / `ctp_reset_axes` — pick Y + X columns
   (enables the customized view, defaults the row window to all rows)
 - **Plot:** `ctp_plot` (honors the `table_plot`/`scatter_plot`/`line_plot` flags),

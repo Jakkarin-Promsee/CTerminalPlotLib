@@ -103,6 +103,29 @@ static void test_select_axes(void)
     printf("  [ok] select_axes: Y/X selection + show_end default\n");
 }
 
+static void test_csv(void)
+{
+    const char *path = "tests/output/_ctp_test.csv";
+    FILE *f = fopen(path, "w");
+    assert(f);
+    fprintf(f, "a,b,c\n1,2,3\n4,,6\n7,8,9\n"); // note the empty middle cell
+    fclose(f);
+
+    DataSet *ds = ctp_read_csv(path);
+    assert(ds);
+    assert(ds->db_cols_size == 3);
+    assert(ds->db_rows_size == 3);
+    assert(strcmp(ds->label[0], "a") == 0);
+    assert(strcmp(ds->label[2], "c") == 0);
+    assert(APPROX(ds->db[0][0], 1.0));
+    assert(APPROX(ds->db[2][2], 9.0));
+    assert(ds->db[1][1] == CTP_NULL_VALUE); // empty cell -> null
+
+    ctp_free_dataset(ds);
+    remove(path);
+    printf("  [ok] csv: cols/rows/labels/values/empty-cell\n");
+}
+
 int main(void)
 {
     printf("Running CTerminalPlot tests...\n");
@@ -110,6 +133,7 @@ int main(void)
     test_search();
     test_add_column();
     test_select_axes();
+    test_csv();
     printf("All tests passed.\n");
     return 0;
 }

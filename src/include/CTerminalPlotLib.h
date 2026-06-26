@@ -92,6 +92,11 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet);
 // No 2-D arrays, no max_row juggling — call once per data series.
 void ctp_add_column(DataSet *dataset, const char *name, const CTP_PARAM *values, int count);
 
+// Data I/O: read a CSV into a fresh DataSet (header row -> labels, numeric rows
+// -> columns; blank/non-numeric cells -> CTP_NULL_VALUE). Simple comma split, no
+// quoted fields. Returns NULL on error; caller frees with ctp_free_dataset.
+DataSet *ctp_read_csv(const char *path);
+
 // Axis selection: pick which column is the Y axis and which are the X axes.
 // Enables the customized view and shows every row by default.
 void ctp_select_axes(DataSet *dataset, int y_col, const int *x_cols, int x_count);
