@@ -1,3 +1,0 @@
-- Restructure code
-- Gradually write new docs file
-- Debug some error

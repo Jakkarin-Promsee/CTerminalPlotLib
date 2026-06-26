@@ -19,8 +19,12 @@ repo in a working, committable state.
   bar / histogram renderers on an internal `CtpCanvas`; color **+ monochrome** modes
   (`NO_COLOR`-aware, marker shapes); **CSV import** + a **`ctplot` CLI**; **8× Braille**
   hi-res line rendering. Examples 7–12 + goldens; all green.
-- **Level 5 — in progress**: ✅ 5.1 README rewrite (hero + gallery + quickstart + CLI).
-  Remaining: finish `docs/`, spelling sweep, CI, packaging/cleanup.
+- **Level 5 — in progress**: ✅ 5.1 README (showcase-driven rewrite: overview + features +
+  structure + per-chart showcases + install/implement). ✅ 5.2 `docs/` rewritten to the real
+  linkable-library API (setup, basic usage, rows, columns/axes, search-sort-analyze + index;
+  stale pre-refactor screenshots retired). ✅ 5.5 (partial) `plan.md` retired; showcase data
+  refreshed to realistic, story-driven datasets (goldens regenerated). Remaining: spelling
+  sweep of code comments, CI, packaging/cleanup.
 
 ## How to use this doc
 - Levels are ordered by dependency: later levels assume earlier ones are done.

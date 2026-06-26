@@ -24,8 +24,8 @@ int main(void)
 
     // --- mono bar: sign shown by fill (█ positive / ▒ negative) ---
     DataSet *bar = ctp_initialize_dataset(1, 20, 16);
-    CTP_PARAM profit[] = {3, 5, 2, -1, -3, 4, 6, 1};
-    ctp_add_column(bar, "profit", profit, 8);
+    CTP_PARAM net_profit[] = {-6, -9, 3, 7, 5, 14, 18, 15};
+    ctp_add_column(bar, "net profit", net_profit, 8);
     ctp_set_color(bar, false);
     ctp_plot_bar(bar);
     ctp_free_dataset(bar);

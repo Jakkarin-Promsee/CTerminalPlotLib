@@ -3,14 +3,17 @@
 
 // Histogram — bin a single column of samples into equal-width buckets and draw
 // the per-bin counts as bars. Pass the bin count to ctp_plot_histogram.
+//
+// Here: daily order counts over four weeks. Most days land in the low-50s, with
+// a few quiet and a few busy days — a rough bell shape once binned.
 int main(void)
 {
     DataSet *ds = ctp_initialize_dataset(1, 20, 32);
 
-    // 20 samples clustered around the middle of the range.
-    CTP_PARAM samples[] = {2, 3, 3, 4, 4, 4, 5, 5, 5, 5,
-                           6, 6, 6, 7, 7, 8, 5, 4, 6, 5};
-    ctp_add_column(ds, "samples", samples, 20);
+    CTP_PARAM daily_orders[] = {44, 47, 49, 50, 51, 52, 53, 54, 48, 46,
+                                50, 52, 53, 55, 49, 51, 52, 54, 45, 50,
+                                51, 56, 48, 53, 57, 50, 42, 59};
+    ctp_add_column(ds, "daily orders", daily_orders, 28);
 
     ctp_plot_histogram(ds, 8);
 

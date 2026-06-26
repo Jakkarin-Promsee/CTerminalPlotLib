@@ -1,104 +1,77 @@
-<!-- 3_Adding_Rows -->
+<!-- 3_Adding-Rows.md -->
 
-# **CTerminalPlotLib - Adding Rows**
+# CTerminalPlot — Adding Rows
 
-## **Contents**
-
-- [Overview](#overview)
-- [Adding Additional Rows](#adding-additional-rows)
-- [Complete Example](#complete-example)
-
-## **Overview**
-
-This guide demonstrates how to add new rows to an existing dataset in CTerminalPlotLib. This is useful when you want to add data points incrementally without recreating the entire dataset.
-
-## **Adding Additional Rows**
+Sometimes data arrives a record at a time rather than a column at a time — readings from a
+loop, a sensor, a stream. `ctp_add_row` appends one row across **all** current columns.
 
 ```c
-void ctp_add_row(DataSet *dataSet, CTP_PARAM data[]);
+void ctp_add_row(DataSet *ds, CTP_PARAM data[]);
 ```
 
-**Parameters:**
+- `data` must hold one value **per existing column**, in column order.
+- The dataset must have room (`db_rows_size < max_param_size`); a full dataset rejects the
+  row with a message on `stderr`.
+- Add your columns (or at least know how many there are) before adding rows.
 
-- `dataSet`: Pointer to your initialized data set
-- `data`: Array of values to add as a new row (must match the number of columns in the dataset)
+## Example
 
-**Important Notes:**
-
-- The size of the `data` array must exactly match the number of columns in your dataset
-- The dataset must be initialized with sufficient capacity for additional rows
-- You must add rows before calling `ctp_plot()`
-
-**Example:**
+Start from the three-column dataset in [Basic usage](2_basic-usage.md), then append one more
+data point `(4, 4, -4)`:
 
 ```c
-// Add a new row with values for all 3 columns
-CTP_PARAM new_row[3] = {4, 4, -4};
-ctp_add_row(dataSet, new_row);
+DataSet *ds = ctp_initialize_dataset(/*cols*/ 3, /*name*/ 20, /*rows*/ 10);
+
+ctp_add_column(ds, "y",    (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
+ctp_add_column(ds, "y = x", (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
+ctp_add_column(ds, "y = -x",(CTP_PARAM[]){ 3, 2, 1,0,-1,-2,-3}, 7);
+
+CTP_PARAM new_row[3] = {4, 4, -4};   // one value per column
+ctp_add_row(ds, new_row);
+
+ctp_plot_table(ds);
 ```
 
-## **Complete Example**
+### Output
 
-The following example demonstrates how to add a new row to an existing dataset:
+The new `4.00 / 4.00 / -4.00` row appears at the bottom:
+
+```
+┌──────────┬──────────┬──────────┐
+│       y  │   y = x  │  y = -x  │
+├──────────┼──────────┼──────────┤
+│   -3.00  │   -3.00  │    3.00  │
+├──────────┼──────────┼──────────┤
+   … rows -2 … 2 …
+├──────────┼──────────┼──────────┤
+│    3.00  │    3.00  │   -3.00  │
+├──────────┼──────────┼──────────┤
+│    4.00  │    4.00  │   -4.00  │
+└──────────┴──────────┴──────────┘
+```
+
+## Ragged columns render as blank
+
+Columns don't have to be the same length. Cells you never fill keep the internal
+`CTP_NULL_VALUE` sentinel and **render as blank** in the table (and are skipped by the charts
+and the statistics). So a short column simply trails off:
 
 ```c
-#include <stdio.h>
-#include "../src/CTerminalPlotLib.c"
-
-int main() {
-    // 1. Initialize data set with room for growth
-    int max_cols_size = 5, max_name_length = 20, max_rows_size = 10;
-    DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
-
-    // 2. Add initial data
-    int available_cols = 3, available_rows = 7, max_rows = 10;
-    CTP_PARAM data[][10] = {
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (x-axis, series 1)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (x-axis, series 2)
-    };
-    ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
-
-    // 3. Add column labels
-    int available_name = 3;
-    char name[][20] = {
-        "y",      // Column 0 (y-axis)
-        "y = x",  // Column 1 (x-axis, series 1)
-        "y = -x", // Column 2 (x-axis, series 2)
-    };
-    ctp_add_label(dataSet, *name, max_name_length, available_name);
-
-    // 4. Add a new row of data
-    // The number of elements must match the number of columns (3)
-    CTP_PARAM new_row[3] = {4, 4, -4};
-    ctp_add_row(dataSet, new_row);
-
-    // 5. Create plots with the updated dataset
-    ctp_plot(dataSet);
-
-    // 6. Free allocated memory
-    ctp_free_dataset(dataSet);
-
-    return 0;
-}
+ctp_add_column(ds, "a", (CTP_PARAM[]){1, 2, 3},     3);   // 3 values
+ctp_add_column(ds, "b", (CTP_PARAM[]){4, 5, 6, 7},  4);   // 4 values
+// row 4 of column "a" stays empty
 ```
 
-**Output:**
+> **Caution:** `CTP_NULL_VALUE` is a float *sentinel* (`4.04e-10`), compared with `==`. Real
+> data exactly equal to it would be treated as empty. For ordinary measurements this never
+> happens, but it's why the value is a deliberately odd magnitude.
 
-Table with added row:  
-![Table Plot](./images/3_0.png)
+## When to use which
 
-Scatter plot with added point:  
-![Scatter Plot](./images/3_1.png)
+`ctp_add_row` is convenient for incremental/streaming input. If you already have whole
+columns up front, [`ctp_add_column`](2_basic-usage.md) is simpler. Loading a file? See the
+[CSV showcase](../README.md#load-a-csv).
 
-## **Use Cases**
+## Next
 
-Adding rows is particularly useful when:
-
-- You are collecting data points over time
-- You want to incrementally build your dataset
-- You're simulating real-time data updates
-
-## **Next Steps**
-
-After learning how to add rows, see [Adding Columns](4_add-col.md) to understand how to expand your dataset horizontally.
+→ [Adding columns & choosing axes](4_Adding-Column.md).

@@ -71,7 +71,7 @@ Linux/macOS before claiming it there.
 | `tests/golden/*.txt` | Captured plot output; diff against these to catch rendering regressions. |
 | `src/ctplot.c` | The **`ctplot` CLI** — reads a CSV (file or stdin), renders table/scatter/line/bar/hist via flags; auto-mono when piped. `make` builds it to `build/ctplot.exe`. |
 | `src/main.c` | Scratch experiments. Not a demo (links the lib like the examples). |
-| `docs/*.md` | Per-topic guides. Incomplete and **still show the old `#include "*.c"` usage** — slated for the Level 5 docs pass. |
+| `docs/*.md` | Per-topic manual (setup, basic usage, rows, columns/axes, search-sort-analyze) + index `0_all_docs.md`. Rewritten to the linkable-library API with real text output; complements the README showcases. |
 | `old-ref/` | The original version + its README and search examples (archive; not built). |
 | `build/` | Generated `libctp.a` + objects (git-ignored). |
 

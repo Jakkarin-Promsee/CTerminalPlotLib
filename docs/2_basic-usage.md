@@ -1,232 +1,131 @@
-<!-- 2_Basic-Usage.md -->
+<!-- 2_basic-usage.md -->
 
-# **CTerminalPlotLib - Basic Usage**
+# CTerminalPlot — Basic Usage
 
-## **Contents**
+Every plot starts from a **`DataSet`**: a fixed-capacity, column-major store of `float` cells
+(`CTP_PARAM`). The flow is always the same:
 
-- [Overview](#overview)
-- [Initialize the Data Set](#initialize-the-data-set)
-- [Add Data to Columns](#add-data-to-columns)
-- [Add Column Labels](#add-column-labels)
-- [Display Memory Usage](#display-memory-usage)
-- [Create Plots](#create-plots)
-- [Free Memory](#free-memory)
-- [Complete Example](#complete-example)
+> **initialize → add columns → plot → free**
 
-## **Overview**
-
-CTerminalPlotLib operates on a sequence of steps:
-
-1. **Initialize** a data set with specified dimensions
-2. **Add data** for columns
-3. **Add labels** for columns
-4. Optionally **display memory usage**
-5. **Plot** the data (tables and scatter plots)
-6. **Free** allocated memory
-
-## **Initialize the Data Set**
+## The DataSet model
 
 ```c
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
 ```
 
-**Parameters:**
+| Parameter        | Meaning                                          |
+| ---------------- | ------------------------------------------------ |
+| `max_param`      | maximum number of **columns**                    |
+| `max_name_size`  | maximum length of a column **label** (incl. NUL) |
+| `max_param_size` | maximum number of **rows** per column            |
 
-- `max_param`: Maximum number of columns
-- `max_name_size`: Maximum length for column names
-- `max_param_size`: Maximum number of rows per column
+Capacities are **fixed at initialization** — the dataset does not grow. Pick sizes with a
+little headroom; adding past them is rejected with a message on `stderr`. Storage is
+**column-major** (`db[column][row]`), because data is added a column at a time.
 
-**Example:**
+## Adding data — the easy way
+
+`ctp_add_column` adds one labelled column from a plain 1-D array. This is the preferred entry
+point: no 2-D arrays, no stride math.
 
 ```c
-int max_cols_size = 3;
-int max_name_length = 20;
-int max_rows_size = 10;
-
-DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
+void ctp_add_column(DataSet *ds, const char *name, const CTP_PARAM *values, int count);
 ```
 
-## **Add Data to Columns**
-
 ```c
-void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
-```
+#include "CTerminalPlotLib.h"
 
-**Parameters:**
-
-- `dataSet`: Pointer to initialized data set
-- `data`: Pointer to data array
-- `max_row`: Maximum rows in data array (for address calculation)
-- `avaliable_col`: Number of columns to add
-- `avaliable_row`: Number of rows to add
-
-**Example:**
-
-```c
-int available_cols = 3;
-int available_rows = 7;
-int max_rows = 10;
-
-// data[][max_rows] - Cannot use variable for array size
-    CTP_PARAM data[][10] = {
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
-    };
-
-ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
-```
-
-## **Add Column Labels**
-
-```c
-void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
-```
-
-**Parameters:**
-
-- `dataSet`: Pointer to initialized data set
-- `name`: Pointer to array of strings containing column labels
-- `max_name_length`: Maximum length of each label
-- `avaliable_name`: Number of labels to add
-
-**Example:**
-
-```c
-int available_name = 3;
-int max_name_length = 20;
-
-// name[][max_name_length] - Cannot use variable for array size
-char name[][20] = {
-    "y",      // Column 0 (default y-axis)
-    "y = x",  // Column 1 (default x-axis)
-    "y = -x", // Column 2 (default x-axis)
-};
-
-ctp_add_label(dataSet, *name, max_name_length, available_name);
-```
-
-## **Display Memory Usage**
-
-```c
-void ctp_printf_memory_usage(const DataSet *dataSet);
-```
-
-**Parameters:**
-
-- `dataSet`: Pointer to initialized data set
-
-**Example:**
-
-```c
-ctp_printf_memory_usage(dataSet);
-```
-
-## **Create Plots**
-
-```c
-void ctp_plot(DataSet *dataSet); // Plot Both Table And Scatter
-void ctp_plot_table(DataSet *dataSet); // Plot Only Table
-void ctp_plot_scatter(DataSet *dataSet); // Plot Only Scatter
-```
-
-**Parameters:**
-
-- `dataSet`: Pointer to initialized data set
-
-**Example:**
-
-```c
-ctp_plot(DataSet *dataSet); // Plot Both Table And Scatter
-ctp_plot_table(DataSet *dataSet); // Plot Only Table
-ctp_plot_scatter(DataSet *dataSet); // Plot Only Scatter
-```
-
-## **Free Memory**
-
-```c
-void ctp_free_dataset(DataSet *dataset);
-```
-
-**Parameters:**
-
-- `dataSet`: Pointer to initialized data set
-
-**Example:**
-
-```c
-ctp_free_dataset(dataSet);
-```
-
-## **Complete Example**
-
-```c
-#include <stdio.h>
-#include "../src/CTerminalPlotLib.c"
-
-int main()
+int main(void)
 {
-    // 1. Initialize data set
-    int max_cols_size = 3, max_name_length = 20, max_rows_size = 10;
-    DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
+    DataSet *ds = ctp_initialize_dataset(/*cols*/ 3, /*name*/ 20, /*rows*/ 10);
 
-    // 2. Prepare data
-    int available_cols = 3, available_rows = 7, max_rows = 10;
-    CTP_PARAM data[][10] = {
-        // max_rows = 10
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
-    };
+    CTP_PARAM y[]    = {-3, -2, -1, 0, 1, 2, 3};
+    CTP_PARAM yx[]   = {-3, -2, -1, 0, 1, 2, 3};
+    CTP_PARAM ynx[]  = { 3,  2,  1, 0, -1, -2, -3};
 
-    // 3. Add data to data set
-    ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
+    ctp_add_column(ds, "y",    y,   7);
+    ctp_add_column(ds, "y = x", yx,  7);
+    ctp_add_column(ds, "y = -x", ynx, 7);
 
-    // 4. Prepare labels
-    int available_name = 3;
-    char name[][20] = {
-        // max_name_length = 20
-        "y",      // Column 0 (default y-axis)
-        "y = x",  // Column 1 (default x-axis)
-        "y = -x", // Column 2 (default x-axis)
-    };
-
-    // 5. Add labels to data set
-    ctp_add_label(dataSet, *name, max_name_length, available_name);
-
-    // 6. Display memory usage (optional)
-    ctp_printf_memory_usage(dataSet);
-
-    // 7. Create plots for both table and scatter
-    ctp_plot(dataSet);
-
-    // 8. Free allocated memory
-    ctp_free_dataset(dataSet);
-
+    ctp_plot(ds);              // table + scatter
+    ctp_free_dataset(ds);
     return 0;
 }
 ```
 
-**Output:**
+### Output
 
-Table output:  
-![Table Plot](./images/2_0.png)
+`ctp_plot` draws the table, then the scatter. Column 0 is the vertical (Y) axis; the
+remaining columns are plotted as series against it.
 
-Scatter plot:  
-![Scatter Plot](./images/2_1.png)
+```
+┌──────────┬──────────┬──────────┐
+│       y  │   y = x  │  y = -x  │
+├──────────┼──────────┼──────────┤
+│   -3.00  │   -3.00  │    3.00  │
+├──────────┼──────────┼──────────┤
+│   -2.00  │   -2.00  │    2.00  │
+├──────────┼──────────┼──────────┤
+│   -1.00  │   -1.00  │    1.00  │
+├──────────┼──────────┼──────────┤
+│    0.00  │    0.00  │    0.00  │
+├──────────┼──────────┼──────────┤
+│    1.00  │    1.00  │   -1.00  │
+├──────────┼──────────┼──────────┤
+│    2.00  │    2.00  │   -2.00  │
+├──────────┼──────────┼──────────┤
+│    3.00  │    3.00  │   -3.00  │
+└──────────┴──────────┴──────────┘
+      ┌────────────────────────────────────────────────────────────────┐
+  3.6 ┼                                │                               │
+      │  ■                             │                             ● │
+  2.1 ┼            ■                   │                   ●           │
+      │                      ■         │         ●                     │
+    0 │────────────────────────────────⊕───────────────────────────────│
+ -0.9 ┼                      ●         │         ■                     │
+      │            ●                   │                   ■           │
+ -3.9 ┼──────────────┼──────────────┼──────────────┼──────────────┼────┘
+    -3.2           -1.7           -0.2            1.3            2.8
+```
 
-## **Use Cases**
+_(Scatter blank rows trimmed for length; the program prints the full grid. In a color
+terminal the two series are red and blue rather than `●` and `■`.)_
 
-Basic usage is particularly useful when:
+## Choosing which plots to draw
 
-- You want to plot fixed data you have
-- You don't want more complex code
-- You don't want to adding, filter, or sort data
+`ctp_plot` honors the dataset's plot flags (table on, scatter on, line off by default). To
+draw exactly one kind, call its renderer directly:
 
-## **Next Steps**
+```c
+ctp_plot_table(ds);      // just the table
+ctp_plot_scatter(ds);    // just the scatter
+ctp_plot_line(ds);       // a line chart (see Adding columns & the README showcases)
+```
 
-After learning basic usage
+## Other ways to load data
 
-- see [Adding Row](3_Adding-Rows) to understand how to expand your dataset vertically.
-- see [Adding Columns](4_add-col.md) to understand how to expand your dataset horizontally.
-- see [Filter or Search Data]() to understand how to expand your dataset horizontally.
+| Function          | Use it when…                                                            |
+| ----------------- | ----------------------------------------------------------------------- |
+| `ctp_add_column`  | you have one labelled series in a 1-D array (**preferred**)             |
+| `ctp_add_row`     | you build the table row by row — see [Adding rows](3_Adding-Rows.md)    |
+| `ctp_add_data`    | you already have a contiguous 2-D block to copy in bulk                 |
+| `ctp_read_csv`    | your data is a CSV file — see the [README CSV showcase](../README.md#load-a-csv) |
+
+## Inspecting a dataset
+
+```c
+ctp_printf_memory_usage(ds);   // capacities, current size, byte footprint
+ctp_printf_properties(ds);     // the above plus axis selection & plot flags
+```
+
+## Free when done
+
+```c
+void ctp_free_dataset(DataSet *ds);   // NULL-safe; frees everything the dataset owns
+```
+
+## Next
+
+- [Adding rows](3_Adding-Rows.md) — append data row by row.
+- [Adding columns & choosing axes](4_Adding-Column.md) — more series, and picking the axis.
+- [Search, sort & analyze](5_data-tools.md) — filter and summarize the data.
