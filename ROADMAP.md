@@ -14,8 +14,13 @@ repo in a working, committable state.
 - **Level 4 — in progress**: ergonomic data API (`ctp_add_column`), usable axis selection
   (`ctp_select_axes`), per-dataset `CtpStyle` config (2.3), public typo renames (4.4),
   sentinel cast fix (4.3, partial). Remaining: ternary-soup readability (4.1), const pass
-  (4.2), quicksort pivot (4.6), and the new-feature decisions (from the post-refactor critique).
-- **Level 5** — pending (docs / CI / packaging / README rewrite).
+  (4.2), quicksort pivot (4.6).
+- **Post-refactor extension (Seasons 1–3) — ✅ DONE** (the "new-feature decisions"): line /
+  bar / histogram renderers on an internal `CtpCanvas`; color **+ monochrome** modes
+  (`NO_COLOR`-aware, marker shapes); **CSV import** + a **`ctplot` CLI**; **8× Braille**
+  hi-res line rendering. Examples 7–12 + goldens; all green.
+- **Level 5 — in progress**: ✅ 5.1 README rewrite (hero + gallery + quickstart + CLI).
+  Remaining: finish `docs/`, spelling sweep, CI, packaging/cleanup.
 
 ## How to use this doc
 - Levels are ordered by dependency: later levels assume earlier ones are done.
