@@ -10,7 +10,9 @@
 typedef float CTP_PARAM;
 
 // Default null value of data in DataSet (should set relate to CTP_PARAM, Caution this value will not show on terminal)
-#define CTP_NULL_VALUE 4.04e-10
+// Cast to CTP_PARAM so the sentinel round-trips exactly on comparison
+// (a bare double literal never compares equal to its truncated float cell).
+#define CTP_NULL_VALUE ((CTP_PARAM)4.04e-10)
 
 // CTP DataFrame structure
 typedef struct
@@ -97,8 +99,8 @@ void ctp_set_table_backspace(int new_backspace);
 void ctp_set_table_width(int new_width);
 void ctp_set_graph_resolution(int _SCREEN_W, int _SCREEN_H);
 void ctp_set_graph_border(int new_border);
-void ctp_set_grap_point_x(char new_point);
-void ctp_set_grap_point_overlapped(char new_point);
+void ctp_set_graph_point_x(char new_point);
+void ctp_set_graph_point_overlapped(char new_point);
 
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size);
@@ -107,9 +109,18 @@ void ctp_free_dataset(DataSet *dataset);
 
 // Manage DataSet Function - use to manage value of inside variable
 void ctp_add_row(DataSet *dataSet, CTP_PARAM data[]);
-void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row);
-void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int avaliable_name);
+void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int available_col, int available_row);
+void ctp_add_label(DataSet *dataset, char *name, int max_name_length, int available_name);
 int ctp_get_dataset_memory_usage(const DataSet *dataSet);
+
+// Ergonomic data entry: add one labelled column from a 1-D array (preferred API).
+// No 2-D arrays, no max_row juggling — call once per data series.
+void ctp_add_column(DataSet *dataset, const char *name, const CTP_PARAM *values, int count);
+
+// Axis selection: pick which column is the Y axis and which are the X axes.
+// Enables the customized view and shows every row by default.
+void ctp_select_axes(DataSet *dataset, int y_col, const int *x_cols, int x_count);
+void ctp_reset_axes(DataSet *dataset);
 
 // Print DataSet Function - use to show insid variable quickly
 void ctp_printf_memory_usage(const DataSet *dataSet);

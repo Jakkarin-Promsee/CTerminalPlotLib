@@ -115,11 +115,11 @@ void ctp_set_graph_border(int new_border)
     DEFAULT_SAVE_POINTER[4] = &BORDER_EDGE;
     DEFAULT_SAVE_VALUE[4] = BORDER_EDGE;
 }
-void ctp_set_grap_point_x(char new_point)
+void ctp_set_graph_point_x(char new_point)
 {
     *POINT_SINGLE = new_point;
 }
-void ctp_set_grap_point_overlapped(char new_point)
+void ctp_set_graph_point_overlapped(char new_point)
 {
     *POINT_OVERLAPPED = new_point;
 }
@@ -254,50 +254,116 @@ void ctp_add_row(DataSet *dataSet, CTP_PARAM data[])
     }
     dataSet->db_rows_size++;
 }
-void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_col, int avaliable_row)
+void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int available_col, int available_row)
 {
     // Check if the input parameters are valid
-    if (dataset == NULL || data == NULL || avaliable_col <= 0 || max_row <= 0)
+    if (dataset == NULL || data == NULL || available_col <= 0 || max_row <= 0)
     {
         fprintf(stderr, "ctp_add_data: invalid parameters\n");
         return;
     }
 
     // Ensure we do not exceed the current dataset sizes
-    if (dataset->max_param_size < avaliable_row || dataset->max_param < avaliable_col)
+    if (dataset->max_param_size < available_row || dataset->max_param < available_col)
     {
         fprintf(stderr, "Not enough space in the dataset to add more data\n");
         return;
     }
 
     // Copy the data from db to the dataset
-    for (int i = 0; i < avaliable_col; i++)
+    for (int i = 0; i < available_col; i++)
     {
-        for (int j = 0; j < avaliable_row; j++)
+        for (int j = 0; j < available_row; j++)
         {
             dataset->db[dataset->db_cols_size + i][j] = (CTP_PARAM)(*((data + j) + i * max_row));
         }
     }
 
     // Update the row and column size of the dataset
-    dataset->db_cols_size += avaliable_col;
-    if (dataset->db_rows_size < avaliable_row)
-        dataset->db_rows_size = avaliable_row;
+    dataset->db_cols_size += available_col;
+    if (dataset->db_rows_size < available_row)
+        dataset->db_rows_size = available_row;
 }
-void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int avaliable_label)
+void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int available_label)
 {
     // Check if the input parameters are valid
-    if (dataset == NULL || label == NULL || max_name_length <= 0 || avaliable_label <= 0)
+    if (dataset == NULL || label == NULL || max_name_length <= 0 || available_label <= 0)
     {
         fprintf(stderr, "ctp_add_label: invalid parameters\n");
         return;
     }
-    for (int i = 0; i < avaliable_label; i++)
+    for (int i = 0; i < available_label; i++)
     {
         strcpy(dataset->label[dataset->db_cols_size_label + i], (label + i * max_name_length));
     }
 
-    dataset->db_cols_size_label += avaliable_label;
+    dataset->db_cols_size_label += available_label;
+}
+void ctp_add_column(DataSet *dataset, const char *name, const CTP_PARAM *values, int count)
+{
+    if (dataset == NULL || values == NULL || count <= 0)
+    {
+        fprintf(stderr, "ctp_add_column: invalid parameters\n");
+        return;
+    }
+    if (dataset->db_cols_size >= dataset->max_param)
+    {
+        fprintf(stderr, "ctp_add_column: no column capacity left (max_param = %d)\n", dataset->max_param);
+        return;
+    }
+    if (count > dataset->max_param_size)
+    {
+        fprintf(stderr, "ctp_add_column: count %d exceeds max_param_size %d\n", count, dataset->max_param_size);
+        return;
+    }
+
+    int col = dataset->db_cols_size;
+
+    // Copy the values; any trailing cells keep the CTP_NULL_VALUE set at init,
+    // so columns of different lengths render as blank in the tail.
+    for (int j = 0; j < count; j++)
+        dataset->db[col][j] = values[j];
+
+    if (name != NULL)
+    {
+        strncpy(dataset->label[col], name, dataset->max_name_size - 1);
+        dataset->label[col][dataset->max_name_size - 1] = '\0';
+    }
+
+    dataset->db_cols_size++;
+    dataset->db_cols_size_label++;
+    if (dataset->db_rows_size < count)
+        dataset->db_rows_size = count;
+}
+void ctp_select_axes(DataSet *dataset, int y_col, const int *x_cols, int x_count)
+{
+    if (dataset == NULL || x_cols == NULL || x_count <= 0)
+    {
+        fprintf(stderr, "ctp_select_axes: invalid parameters\n");
+        return;
+    }
+    if (x_count > dataset->max_param)
+    {
+        fprintf(stderr, "ctp_select_axes: x_count %d exceeds max_param %d\n", x_count, dataset->max_param);
+        return;
+    }
+
+    dataset->chosen_Y_param = y_col;
+    for (int i = 0; i < x_count; i++)
+        dataset->chosen_X_param[i] = x_cols[i];
+    dataset->chosen_X_param_size = x_count;
+
+    // Turn on the customized view and default the row window to "all rows"
+    // (otherwise show_end stays 0 and nothing is drawn).
+    dataset->plotProperties->customize_display = true;
+    dataset->show_begin = 0;
+    dataset->show_end = dataset->db_rows_size;
+}
+void ctp_reset_axes(DataSet *dataset)
+{
+    if (dataset == NULL)
+        return;
+    dataset->plotProperties->customize_display = false;
 }
 int ctp_get_dataset_memory_usage(const DataSet *dataSet)
 {

@@ -2,6 +2,7 @@
 // Build & run:  make test
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <assert.h>
 #include "../src/include/CTerminalPlotLib.h"
@@ -57,11 +58,58 @@ static void test_search(void)
     printf("  [ok] search: gte/lt/ne/e counts correct\n");
 }
 
+static void test_add_column(void)
+{
+    DataSet *ds = ctp_initialize_dataset(3, 20, 8);
+    CTP_PARAM a[] = {1, 2, 3};
+    CTP_PARAM b[] = {4, 5, 6, 7};
+    ctp_add_column(ds, "a", a, 3);
+    ctp_add_column(ds, "b", b, 4);
+
+    assert(ds->db_cols_size == 2);
+    assert(ds->db_rows_size == 4); // max of the column lengths
+    assert(strcmp(ds->label[0], "a") == 0);
+    assert(strcmp(ds->label[1], "b") == 0);
+    assert(APPROX(ds->db[0][0], 1.0));
+    assert(APPROX(ds->db[1][3], 7.0));
+    assert(ds->db[0][3] == CTP_NULL_VALUE); // ragged tail stays "empty"
+
+    ctp_free_dataset(ds);
+    printf("  [ok] add_column: cols/rows/labels/ragged tail\n");
+}
+
+static void test_select_axes(void)
+{
+    DataSet *ds = ctp_initialize_dataset(3, 20, 8);
+    CTP_PARAM y[] = {0, 1, 2, 3};
+    CTP_PARAM x1[] = {3, 2, 1, 0};
+    CTP_PARAM x2[] = {0, 2, 4, 6};
+    ctp_add_column(ds, "y", y, 4);
+    ctp_add_column(ds, "x1", x1, 4);
+    ctp_add_column(ds, "x2", x2, 4);
+
+    int xs[] = {1, 2};
+    ctp_select_axes(ds, 0, xs, 2);
+    assert(ds->chosen_Y_param == 0);
+    assert(ds->chosen_X_param_size == 2);
+    assert(ds->chosen_X_param[0] == 1 && ds->chosen_X_param[1] == 2);
+    assert(ds->plotProperties->customize_display == true);
+    assert(ds->show_end == 4); // defaulted to all rows
+
+    ctp_reset_axes(ds);
+    assert(ds->plotProperties->customize_display == false);
+
+    ctp_free_dataset(ds);
+    printf("  [ok] select_axes: Y/X selection + show_end default\n");
+}
+
 int main(void)
 {
     printf("Running CTerminalPlot tests...\n");
     test_statistics();
     test_search();
+    test_add_column();
+    test_select_axes();
     printf("All tests passed.\n");
     return 0;
 }
