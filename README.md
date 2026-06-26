@@ -1,59 +1,75 @@
+<div align="center">
+
 # CTerminalPlot
 
-**Plot tables, scatter, line, bar, and histogram charts straight into your terminal — in
-pure, dependency-free C.** UTF-8 box-drawing, ANSI color, and an 8× Braille mode give you
-matplotlib's spirit in ~2,000 lines of C11 and nothing else but `libm`.
+**Tables and charts, drawn straight into your terminal — in pure, dependency-free C.**
 
-```
-      ┌────────────────────────────────────────────────────────────┐
-  1.00│           ⣀⠤⠒⠉⠉⠉⠒⢄                                         │
-      │         ⡠⠊        ⠑⢄                                       │
-      │       ⢀⠜            ⠱⡀                                     │
-      │      ⢠⠊              ⠘⡄                                    │
-      │     ⡰⠁                ⠘⢄                                   │
-  0.47│    ⡜                   ⠈⢆                                  │
-      │   ⡜                     ⠈⢆                                 │
-      │  ⡜                       ⠈⢆                                │
-      │ ⡜                         ⠈⢆                               │
-      │⡜                           ⠈⢢                              │
- -0.05│                              ⢣                           ⢀⠎│
-      │                               ⢣                         ⢀⠎ │
-      │                                ⢣                       ⢀⠎  │
-      │                                 ⢣                     ⢀⠎   │
-      │                                  ⠣⡀                  ⢀⠎    │
- -0.58│                                   ⠱⡀                ⢀⠎     │
-      │                                    ⠑⡄              ⡠⠃      │
-      │                                     ⠈⢆            ⡔⠁       │
-      │                                       ⠑⢄        ⡠⠊         │
- -1.00│                                         ⠑⠢⢄⣀⣀⡠⠔⠊           │
-      └────────────────────────────────────────────────────────────┘
-       0.00                        3.14                        6.28
-```
+UTF-8 box-drawing, ANSI color, and an 8× Braille mode bring matplotlib's spirit to a
+single `.c` file and nothing but `libm`.
 
-> _Origin: this began as a first-year university C final project — hand-rolled "OOP in C",
-> a dynamic array, and a terminal plotter, written before AI assistants were any good. It's
-> since been refactored into a portfolio piece. The history is in [ROADMAP.md](ROADMAP.md)._
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Language: C11](https://img.shields.io/badge/C-11-00599C.svg?logo=c&logoColor=white)](https://en.wikipedia.org/wiki/C11_(C_standard_revision))
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](#install--build)
+[![Dependencies](https://img.shields.io/badge/dependencies-libm%20only-success.svg)](#install--build)
+[![Build: make](https://img.shields.io/badge/build-make-brightgreen.svg)](Makefile)
+[![Tested](https://img.shields.io/badge/tested-asserts%20%2B%20golden%20snapshots-blueviolet.svg)](tests/)
+
+<br/>
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/hero-braille.png" width="430" alt="A sine wave rendered at 8x resolution with Braille dots">
+      <br><sub><b>8× Braille line</b> — smooth curves from a 2×4 dot grid</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/quickstart-scatter.png" width="430" alt="A multi-series scatter plot with colored markers and auto axes">
+      <br><sub><b>Multi-series scatter</b> — colored markers on auto axes</sub>
+    </td>
+  </tr>
+</table>
+
+</div>
 
 ---
 
-## Overview
+## Contents
+
+- [Why CTerminalPlot](#why-cterminalplot)
+- [Features](#features)
+- [Install & build](#install--build)
+- [Quickstart](#quickstart)
+- [Chart types](#chart-types)
+  - [Table](#table) · [Scatter](#scatter) · [Line](#line) · [Bar](#bar) · [Histogram](#histogram)
+  - [Braille hi-res (8×)](#braille-hi-res-8) · [Monochrome / `NO_COLOR`](#monochrome--no_color)
+- [Load a CSV](#load-a-csv)
+- [The `ctplot` CLI](#the-ctplot-cli)
+- [API reference](#api-reference)
+- [How it works](#how-it-works)
+- [Project structure](#project-structure)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License & origin](#license--origin)
+
+## Why CTerminalPlot
 
 CTerminalPlot is a small C library (plus a `ctplot` CLI) for visualizing numeric data
 **without leaving the terminal** — no GUI, no Python, no plotting backend. You build a
 `DataSet` in memory (columns × rows of `float`), optionally filter / sort / analyze it, then
 call a `ctp_plot*` function to draw it as a boxed table or a chart.
 
-It's built for the moments when you just want to *see* the numbers: debugging a C program,
+It's built for the moments when you just want to _see_ the numbers: debugging a C program,
 eyeballing a CSV over SSH, or sketching a curve where a heavyweight plotting stack would be
 overkill.
 
-|                  |                                                              |
-| ---------------- | ------------------------------------------------------------ |
-| **Language**     | C11                                                          |
+|                  |                                                             |
+| ---------------- | ----------------------------------------------------------- |
+| **Language**     | C11                                                         |
 | **Dependencies** | the C standard library + `libm` — nothing else              |
 | **Output**       | UTF-8 box-drawing + ANSI color (or pure monochrome)         |
 | **Footprint**    | one `.c` (~2,000 lines), one header                         |
 | **Tested**       | assertion suite + golden-output snapshots for every example |
+| **License**      | MIT                                                         |
 
 ## Features
 
@@ -71,35 +87,13 @@ overkill.
 - **Leak-clean & tested** — assertion tests plus golden snapshots that catch any rendering
   regression.
 
-## Project structure
-
-```
-CTerminalPlot/
- ├── src/
- │   ├── CTerminalPlotLib.c      # the whole library implementation (~2,000 lines)
- │   ├── include/
- │   │   └── CTerminalPlotLib.h  # the public API: types, prototypes, config
- │   └── ctplot.c                # the ctplot CLI front-end
- ├── examples/                   # runnable, documented programs (0 → 12)
- │   ├── 0_quickstart.c          #   one call per series → table + scatter
- │   ├── …                       #   one example per feature
- │   └── data/sample.csv         #   sample input for the CSV demo
- ├── tests/
- │   ├── test_ctp.c              # assertion tests (make test)
- │   └── golden/*.txt            # captured output; diff to catch regressions
- ├── docs/                       # per-topic guides
- ├── Makefile                    # build the library, examples, CLI, and tests
- ├── ROADMAP.md                  # the refactor history & what's next
- └── CLAUDE.md                   # source map & conventions for contributors
-```
-
 ## Install & build
 
 Pure C11 + libm; needs a UTF-8 + ANSI terminal (every modern one qualifies). Developed and
 tested with MinGW GCC on Windows; the source is cross-platform by design.
 
 ```sh
-git clone <repo-url> CTerminalPlot
+git clone https://github.com/Jakkarin-Promsee/CTerminalPlot-.git CTerminalPlot
 cd CTerminalPlot
 
 make            # builds build/libctp.a, every examples/*.exe, and build/ctplot.exe
@@ -109,8 +103,37 @@ make clean      # removes build artifacts
 ./examples/output/0_quickstart.exe   # run any example
 ```
 
-To use the library in your own program, include the header and link the static library —
-**do not `#include` the `.c`**:
+### Building on Windows (MinGW)
+
+On Windows the project builds with **MinGW GCC** (developed against MinGW GCC 6.3.0; any modern
+GCC works). MinGW ships the `make` tool under the name **`mingw32-make`** — use it anywhere
+these docs say `make`:
+
+```sh
+mingw32-make            # build the library, examples, and CLI
+mingw32-make test       # build & run the assertion tests
+mingw32-make clean      # remove build artifacts
+```
+
+The `Makefile` uses Unix-style commands (`mkdir -p`, `rm`, `ar`), so run `mingw32-make` from a
+shell that provides them — **Git Bash** or the **MSYS2 / MinGW** shell, not `cmd.exe`. Make
+sure MinGW's `bin\` directory (the one with `gcc.exe` and `mingw32-make.exe`) is on your
+`PATH`.
+
+**No `make` at all?** Any program compiles in a single line — this needs only `gcc` and runs
+straight from PowerShell or `cmd`, with no Unix shell required:
+
+```sh
+gcc -Isrc/include examples/0_quickstart.c src/CTerminalPlotLib.c -o quickstart.exe -lm
+.\quickstart.exe
+```
+
+> **Terminal tip:** for the sharpest output use a modern terminal (Windows Terminal, iTerm2,
+> GNOME Terminal, …) with a monospaced font that includes box-drawing and Braille glyphs —
+> e.g. Cascadia Code, JetBrains Mono, or any Nerd Font — on a dark background.
+
+To use the library in your own program, **include the header and link the static library** —
+do _not_ `#include` the `.c`:
 
 ```sh
 gcc -Isrc/include your_program.c build/libctp.a -o your_program -lm
@@ -122,167 +145,127 @@ gcc -Isrc/include your_program.c build/libctp.a -o your_program -lm
 
 ## Quickstart
 
-One call per data series — no 2-D arrays, no manual sizing. This whole program prints a
-boxed table **and** a scatter plot:
+One call per data series — no 2-D arrays, no manual sizing. This whole program generates two
+trig curves, then prints a boxed **table** _and_ a **scatter** with `ctp_plot()`:
 
 ```c
-#include "CTerminalPlotLib.h"   // build with -Isrc/include
+#include <stdio.h>
+#include <math.h>
+#include "CTerminalPlotLib.h"          // build with -Isrc/include
+
+#define DEG2RAD(x) ((x) * M_PI / 180.0)
 
 int main(void)
 {
-    DataSet *ds = ctp_initialize_dataset(/*max_cols*/ 3, /*max_name*/ 20, /*max_rows*/ 16);
+    const int N = 25;                  // -180° … 180°, step 15°
+    DataSet *ds = ctp_initialize_dataset(/*max_cols*/ 3, /*max_name*/ 32, /*max_rows*/ N);
 
-    CTP_PARAM x[]  = {-3, -2, -1, 0, 1, 2, 3};
-    CTP_PARAM y1[] = {-3, -2, -1, 0, 1, 2, 3};
-    CTP_PARAM y2[] = { 9,  4,  1, 0, 1, 4, 9};
+    CTP_PARAM angle[N], wave[N], beat[N];
 
-    ctp_add_column(ds, "x",       x,  7);
-    ctp_add_column(ds, "y = x",   y1, 7);
-    ctp_add_column(ds, "y = x^2", y2, 7);
+    int i = 0;
+    for (int deg = -180; deg <= 180; deg += 15) {
+        angle[i] = deg;                                    // the X axis
+        wave[i]  = cos(DEG2RAD(2 * deg - 10));             // a phase-shifted cosine
+        beat[i]  = 0.4 * DEG2RAD(deg) * cos(DEG2RAD(2 * deg)); // a growing "beat"
+        i++;
+    }
 
-    ctp_plot(ds);             // table + scatter
+    ctp_add_column(ds, "Angle (deg)",       angle, N);     // column 0 -> X (horizontal)
+    ctp_add_column(ds, "y = cos(x)",        wave,  N);     // column 1 -> Y series
+    ctp_add_column(ds, "y = 0.4x * cos(x)", beat,  N);     // column 2 -> Y series
+
+    ctp_plot(ds);                       // boxed table + scatter
     ctp_free_dataset(ds);
     return 0;
 }
 ```
 
-```
-┌──────────┬──────────┬──────────┐
-│       x  │   y = x  │ y = x^2  │
-├──────────┼──────────┼──────────┤
-│   -3.00  │   -3.00  │    9.00  │
-├──────────┼──────────┼──────────┤
-│   -2.00  │   -2.00  │    4.00  │
-├──────────┼──────────┼──────────┤
-│   -1.00  │   -1.00  │    1.00  │
-├──────────┼──────────┼──────────┤
-│    0.00  │    0.00  │    0.00  │
-├──────────┼──────────┼──────────┤
-│    1.00  │    1.00  │    1.00  │
-├──────────┼──────────┼──────────┤
-│    2.00  │    2.00  │    4.00  │
-├──────────┼──────────┼──────────┤
-│    3.00  │    3.00  │    9.00  │
-└──────────┴──────────┴──────────┘
-      ┌────────────────────────────────────────────────────────────┐
-  9.00│■                             │                            ■│
-      │                              │                             │
-      │                              │                             │
-      │                              │                             │
-      │                              │                             │
-  5.84│                              │                             │
-      │                              │                             │
-      │                              │                             │
-      │          ■                   │                  ■          │
-      │                              │                            ●│
-  2.68│                              │                             │
-      │                              │                  ●          │
-      │                              │                             │
-      │                    ■         │        ⊕                    │
-      │──────────────────────────────⊕─────────────────────────────│
- -0.47│                              │                             │
-      │                    ●         │                             │
-      │          ●                   │                             │
-      │                              │                             │
- -3.00│●                             │                             │
-      └────────────────────────────────────────────────────────────┘
-       -3.00                       0.00                        3.00
-```
+<p align="center">
+  <img src="assets/quickstart-scatter.png" width="640" alt="Scatter plot of two cosine series against angle, each series in its own color">
+</p>
 
 Column 0 is the **X axis** (drawn horizontally); every other column is a **Y series**
-(drawn vertically). So `y = x` rises on the diagonal and `y = x²` traces an upward parabola.
+(drawn vertically). `ctp_plot()` prints a boxed table of the raw numbers first, then the
+scatter above.
 
 Typical flow: `initialize → add_column… → (select_axes / find / sort) → plot → free`.
 **Full example: [examples/0_quickstart.c](examples/0_quickstart.c).**
 
 ---
 
-## Showcases
+## Chart types
 
-Each block shows the **rendered result first**, then the code that made it, then a link to
-the full runnable example. _(Output below is monochrome so it renders cleanly here; in a real
-terminal each series gets its own ANSI color.)_
+Each block shows the **rendered result**, then the code that made it, then a link to the full
+runnable example. Every series gets its own ANSI color in a real terminal.
 
-### Line chart
+### Table
+
+A boxed, aligned table of the raw numbers — the plainest view, and the one `ctp_plot_table`
+draws on its own. Below: a made-up online store's first year (`examples/data/sample.csv`).
+
+<p align="center">
+  <img src="assets/table.png" width="300" alt="Boxed table of month, sales and profit columns">
+</p>
+
+```c
+DataSet *ds = ctp_read_csv("examples/data/sample.csv");
+ctp_plot_table(ds);    // header row -> labels, numeric rows -> aligned cells
+```
+
+**Full example: [examples/11_csv.c](examples/11_csv.c).**
+
+### Scatter
+
+Each Y series drops its markers against the shared X column, over a zero-axis crosshair.
+Distinct series in the same cell collapse to the overlap glyph (`⊕`). This is what
+`ctp_plot()` draws under the table in the [Quickstart](#quickstart) above:
+
+<p align="center">
+  <img src="assets/quickstart-scatter.png" width="640" alt="Scatter plot of two cosine series, each in its own color">
+</p>
+
+```c
+int y_series[] = {1, 2};
+ctp_select_axes(ds, 0, y_series, 2);   // column 0 = X; columns 1 & 2 = Y series
+ctp_plot_scatter(ds);
+```
+
+**Full example: [examples/0_quickstart.c](examples/0_quickstart.c).**
+
+### Line
 
 Connect each Y series into a continuous stroke against the shared X axis. Multiple series are
-drawn at once — here a straight line (`y = x`) and a parabola (`y = x²`) share one horizontal
-X axis:
+drawn at once — here a straight line (`y = x`) and a parabola (`y = x²`) over one X axis:
 
-```
-      ┌────────────────────────────────────────────────────────────┐
-  9.00│╲                                                          ■│
-      │ ╲                                                        ╱ │
-      │  ╲╲                                                    ╱╱  │
-      │    ╲                                                  ╱    │
-      │     ╲                                                ╱     │
-  5.84│      ╲                                              ╱      │
-      │       ╲╲                                          ╱╱       │
-      │         ╲                                        ╱         │
-      │          ╲╲                                     ╱          │
-      │            ╲╲                                 ╱╱        ──●│
-  2.68│              ╲╲                             ╱╱     ─────   │
-      │                ╲╲                         ╱╱  ─────        │
-      │                  ╲╲                     ╱╱────             │
-      │                    ──────         ────╱╱─                  │
-      │                          ─────────                         │
- -0.47│                       ─────                                │
-      │                ───────                                     │
-      │        ────────                                            │
-      │   ─────                                                    │
- -3.00│───                                                         │
-      └────────────────────────────────────────────────────────────┘
-       -3.00                       0.00                        3.00
-```
+<p align="center">
+  <img src="assets/line.png" width="640" alt="Line chart of a straight line and a parabola sharing one X axis">
+</p>
 
 ```c
 CTP_PARAM x[]    = {-3, -2, -1, 0, 1, 2, 3};
-CTP_PARAM line[] = {-3, -2, -1, 0, 1, 2, 3}; // a straight line  (y = x)
-CTP_PARAM para[] = { 9,  4,  1, 0, 1, 4, 9}; // a parabola       (y = x^2)
+CTP_PARAM line[] = {-3, -2, -1, 0, 1, 2, 3}; // y = x
+CTP_PARAM para[] = { 9,  4,  1, 0, 1, 4, 9}; // y = x²
 
-ctp_add_column(ds, "x", x, 7);
+ctp_add_column(ds, "x",    x,    7);
 ctp_add_column(ds, "line", line, 7);
 ctp_add_column(ds, "para", para, 7);
 
 int y_series[] = {1, 2};
-ctp_select_axes(ds, 0, y_series, 2);  // x is the horizontal axis; line & para are series
+ctp_select_axes(ds, 0, y_series, 2);   // x is horizontal; line & para are series
 ctp_plot_line(ds);
 ```
 
 **Full example: [examples/7_line-plot.c](examples/7_line-plot.c).**
 
-### Bar chart
+### Bar
 
-One vertical bar per row on a zero baseline — positive bars rise (green in color, `█` in
-mono), negatives drop below (red, `▒`). Here: a small shop's monthly net profit, underwater
-in winter then climbing into the black.
+One vertical bar per row on a zero baseline — positive bars rise (green; `█` in mono),
+negatives drop below (red; `▒`). Here: a small shop's monthly net profit, underwater in
+winter then climbing into the black.
 
-```
-Bar: net profit (8 bars)
-      ┌────────────────────────────────────────────────────────────┐
- 18.00│                                          ██████            │
-      │                                          ██████            │
-      │                                   ██████ ██████ ██████     │
-      │                                   ██████ ██████ ██████     │
-      │                                   ██████ ██████ ██████     │
- 10.89│                                   ██████ ██████ ██████     │
-      │                                   ██████ ██████ ██████     │
-      │                                   ██████ ██████ ██████     │
-      │                     ██████        ██████ ██████ ██████     │
-      │                     ██████ ██████ ██████ ██████ ██████     │
-  3.79│                     ██████ ██████ ██████ ██████ ██████     │
-      │              ██████ ██████ ██████ ██████ ██████ ██████     │
-      │              ██████ ██████ ██████ ██████ ██████ ██████     │
-      │▒▒▒▒▒▒ ▒▒▒▒▒▒ ██████ ██████ ██████ ██████ ██████ ██████     │
-      │▒▒▒▒▒▒ ▒▒▒▒▒▒                                               │
- -3.32│▒▒▒▒▒▒ ▒▒▒▒▒▒                                               │
-      │▒▒▒▒▒▒ ▒▒▒▒▒▒                                               │
-      │▒▒▒▒▒▒ ▒▒▒▒▒▒                                               │
-      │       ▒▒▒▒▒▒                                               │
- -9.00│       ▒▒▒▒▒▒                                               │
-      └────────────────────────────────────────────────────────────┘
-          0      1      2      3      4      5      6      7
-```
+<p align="center">
+  <img src="assets/bar.png" width="640" alt="Bar chart of monthly net profit, negative bars below a zero baseline">
+</p>
 
 ```c
 CTP_PARAM net_profit[] = {-6, -9, 3, 7, 5, 14, 18, 15};
@@ -298,32 +281,9 @@ ctp_plot_bar(ds);   // single column → uses column 0, zero baseline
 Bin one column into equal-width buckets and bar the per-bin counts. Here: daily order counts
 over four weeks, clustering into a rough bell once binned.
 
-```
-Histogram: daily orders (8 bins, range 42.00..59.00)
-      ┌────────────────────────────────────────────────────────────┐
-  6.00│                     ██████ ██████                          │
-      │                     ██████ ██████                          │
-      │                     ██████ ██████                          │
-      │                     ██████ ██████ ██████                   │
-      │                     ██████ ██████ ██████                   │
-  4.42│                     ██████ ██████ ██████                   │
-      │                     ██████ ██████ ██████                   │
-      │                     ██████ ██████ ██████                   │
-      │                     ██████ ██████ ██████                   │
-      │              ██████ ██████ ██████ ██████                   │
-  2.84│              ██████ ██████ ██████ ██████                   │
-      │              ██████ ██████ ██████ ██████                   │
-      │              ██████ ██████ ██████ ██████                   │
-      │██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-      │██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-  1.26│██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-      │██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-      │██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-      │██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-  0.00│██████ ██████ ██████ ██████ ██████ ██████ ██████ ██████     │
-      └────────────────────────────────────────────────────────────┘
-       42.00                       50.50                      59.00
-```
+<p align="center">
+  <img src="assets/histogram.png" width="640" alt="Histogram of daily order counts across eight bins">
+</p>
 
 ```c
 CTP_PARAM daily_orders[] = {44, 47, 49, 50, 51, 52, 53, 54, 48, 46,
@@ -338,50 +298,28 @@ ctp_plot_histogram(ds, 8);   // 8 bins
 
 ### Braille hi-res (8×)
 
-A Braille cell packs a 2×4 dot grid, so the same canvas size resolves **8× more detail**. The
-block-glyph renderer below draws a sine wave; the smooth Braille version of the *same* wave is
-the image at the top of this README. `ctp_plot_line` switches between them on one flag:
+A Braille cell packs a 2×4 dot grid, so the same canvas resolves **8× more detail**.
+`ctp_plot_line` switches between the block-glyph renderer and the Braille rasterizer on one
+flag — same data, same frame, 8× the smoothness (the Braille version is the image at the top
+of this README):
 
-```
-Block resolution:
-      ┌────────────────────────────────────────────────────────────┐
-  1.00│            ─────╲                                          │
-      │          ─╱      ──╲                                       │
-      │        ─╱           ╲                                      │
-      │       ╱              ─╲                                    │
-      │      ╱                 ╲                                   │
-  0.47│     ╱                   ╲                                  │
-      │    ╱                     ╲                                 │
-      │  ─╱                       ╲                                │
-      │ ╱                          ╲                               │
-      │╱                            ╲                              │
- -0.05│                              ╲                            ●│
-      │                               ╲                          ╱ │
-      │                                ╲                       ─╱  │
-      │                                 ╲                     ╱    │
-      │                                  ╲                   ╱     │
- -0.58│                                   ╲                 ╱      │
-      │                                    ─╲              ╱       │
-      │                                      ╲           ─╱        │
-      │                                       ──╲      ─╱          │
- -1.00│                                          ─────╱            │
-      └────────────────────────────────────────────────────────────┘
-       0.00                        3.14                        6.28
-```
+<p align="center">
+  <img src="assets/hero-braille.png" width="640" alt="A sine wave rendered at 8x resolution with Braille dots">
+</p>
 
 ```c
 for (int i = 0; i < N; i++) {
-    double x = (double)i / (N - 1) * 6.2831853; // 0 .. 2*pi
-    sinv[i] = (CTP_PARAM)sin(x);
+    double x = (double)i / (N - 1) * 6.2831853; // 0 … 2π
     t[i]    = (CTP_PARAM)x;
+    sinv[i] = (CTP_PARAM)sin(x);
 }
-ctp_add_column(ds, "t",   t,    N);   // column 0 -> X (horizontal)
+ctp_add_column(ds, "t",   t,    N);   // column 0 -> X
 ctp_add_column(ds, "sin", sinv, N);   // column 1 -> Y series
 ctp_select_axes(ds, 0, (int[]){1}, 1);
 
-ctp_plot_line(ds);                  // block resolution (above)
+ctp_plot_line(ds);                    // block resolution
 ctp_set_graph_braille(ds, true);
-ctp_plot_line(ds);                  // 8× braille (the hero image at the top)
+ctp_plot_line(ds);                    // 8× Braille (above)
 ```
 
 **Full example: [examples/12_braille.c](examples/12_braille.c).**
@@ -392,46 +330,28 @@ For terminals (or pipes) without color, series are told apart by marker **shape*
 (`● ■ ▲ ◆`), overlaps by `⊕`, and bar sign by **fill** (`█` up / `▒` down). It turns on
 automatically when `NO_COLOR` is set, or explicitly with `ctp_set_color(ds, false)`:
 
-```
-      ┌────────────────────────────────────────────────────────────┐
-  9.00│■                             │                            ■│
-      │                              │                             │
-      │                              │                             │
-      │                              │                             │
-      │                              │                             │
-  5.84│                              │                             │
-      │                              │                             │
-      │                              │                             │
-      │          ■                   │                  ■          │
-      │                              │                            ●│
-  2.68│                              │                             │
-      │                              │                  ●          │
-      │                              │                             │
-      │                    ■         │        ⊕                    │
-      │──────────────────────────────⊕─────────────────────────────│
- -0.47│                              │                             │
-      │                    ●         │                             │
-      │          ●                   │                             │
-      │                              │                             │
- -3.00│●                             │                             │
-      └────────────────────────────────────────────────────────────┘
-       -3.00                       0.00                        3.00
-```
+<p align="center">
+  <img src="assets/mono.png" width="640" alt="Monochrome scatter distinguishing two series by marker shape">
+</p>
 
 ```c
 ctp_select_axes(s, 0, (int[]){1, 2}, 2);  // column 0 = X; columns 1 and 2 = Y series
-ctp_set_color(s, false);     // or run with NO_COLOR=1 in the environment
+ctp_set_color(s, false);                  // or run with NO_COLOR=1 in the environment
 ctp_plot_scatter(s);
 ```
 
 **Full example: [examples/10_mono-mode.c](examples/10_mono-mode.c).**
 
-### Load a CSV
+## Load a CSV
 
 `ctp_read_csv()` turns a CSV into a `DataSet`: the header row becomes column labels, numeric
 rows become data, blank cells become empty. Below, one file —
 [examples/data/sample.csv](examples/data/sample.csv), an imaginary store's first year — is
-read once and plotted as a table and a sales line (the example also bars the profit column):
+read once and plotted as a sales line (the example also draws the table and a profit bar):
+
+<p align="center">
+  <img src="assets/csv.png" width="640" alt="Line chart of monthly sales climbing across the year">
+</p>
 
 ```c
 DataSet *ds = ctp_read_csv("examples/data/sample.csv");
@@ -447,62 +367,9 @@ ctp_select_axes(ds, 0, profit, 1);        // 3) profit (col 2) as bars
 ctp_plot_bar(ds);
 ```
 
-```
-┌──────────┬──────────┬──────────┐
-│   month  │   sales  │  profit  │
-├──────────┼──────────┼──────────┤
-│    1.00  │   42.00  │   -6.00  │
-├──────────┼──────────┼──────────┤
-│    2.00  │   38.00  │   -9.00  │
-├──────────┼──────────┼──────────┤
-│    3.00  │   55.00  │    3.00  │
-├──────────┼──────────┼──────────┤
-│    4.00  │   61.00  │    7.00  │
-├──────────┼──────────┼──────────┤
-│    5.00  │   58.00  │    5.00  │
-├──────────┼──────────┼──────────┤
-│    6.00  │   72.00  │   14.00  │
-├──────────┼──────────┼──────────┤
-│    7.00  │   79.00  │   18.00  │
-├──────────┼──────────┼──────────┤
-│    8.00  │   75.00  │   15.00  │
-├──────────┼──────────┼──────────┤
-│    9.00  │   88.00  │   23.00  │
-├──────────┼──────────┼──────────┤
-│   10.00  │   94.00  │   27.00  │
-├──────────┼──────────┼──────────┤
-│   11.00  │  118.00  │   41.00  │
-├──────────┼──────────┼──────────┤
-│   12.00  │  135.00  │   52.00  │
-└──────────┴──────────┴──────────┘
-      ┌────────────────────────────────────────────────────────────┐
-135.00│                                                           ●│
-      │                                                         ╱╱ │
-      │                                                       ╱╱   │
-      │                                                      ╱     │
-      │                                                     ╱      │
-109.47│                                                    ╱       │
-      │                                                  ╱╱        │
-      │                                                 ╱          │
-      │                                              ──╱           │
-      │                                           ───              │
- 83.95│                                         ╱╱                 │
-      │                              ──────   ╱╱                   │
-      │                           ───      ──╱                     │
-      │                         ╱╱                                 │
-      │               ────    ╱╱                                   │
- 58.42│             ──    ──╱╱                                     │
-      │           ──                                               │
-      │         ╱╱                                                 │
-      │───    ╱╱                                                   │
- 38.00│   ──╱╱                                                     │
-      └────────────────────────────────────────────────────────────┘
-       1.00                        6.50                       12.00
-```
-
 **Full example: [examples/11_csv.c](examples/11_csv.c).**
 
-### The `ctplot` CLI
+## The `ctplot` CLI
 
 A thin command-line tool over the library — point it at a CSV (or pipe one in) and pick
 charts with flags:
@@ -513,34 +380,11 @@ build/ctplot.exe examples/data/sample.csv --bar  --y 2         # profit bars
 cat data.csv | build/ctplot.exe --hist --y 1 --bins 12         # or via stdin
 ```
 
-```
-Bar: profit (12 bars)
-      ┌────────────────────────────────────────────────────────────┐
- 52.00│                                                       ████ │
-      │                                                       ████ │
-      │                                                       ████ │
-      │                                                  ████ ████ │
-      │                                                  ████ ████ │
- 35.95│                                                  ████ ████ │
-      │                                                  ████ ████ │
-      │                                                  ████ ████ │
-      │                                             ████ ████ ████ │
-      │                                        ████ ████ ████ ████ │
- 19.89│                                        ████ ████ ████ ████ │
-      │                              ████      ████ ████ ████ ████ │
-      │                         ████ ████ ████ ████ ████ ████ ████ │
-      │                         ████ ████ ████ ████ ████ ████ ████ │
-      │               ████      ████ ████ ████ ████ ████ ████ ████ │
-  3.84│          ████ ████ ████ ████ ████ ████ ████ ████ ████ ████ │
-      │▒▒▒▒ ▒▒▒▒ ████ ████ ████ ████ ████ ████ ████ ████ ████ ████ │
-      │▒▒▒▒ ▒▒▒▒                                                   │
-      │▒▒▒▒ ▒▒▒▒                                                   │
- -9.00│     ▒▒▒▒                                                   │
-      └────────────────────────────────────────────────────────────┘
-         0    1    2    3    4    5    6    7    8    9   10   11
-```
+<p align="center">
+  <img src="assets/cli.png" width="640" alt="ctplot rendering the profit column as a bar chart">
+</p>
 
-```
+```text
 Charts (combine freely; default: --table --scatter):
   --table  --scatter  --line  --bar  --hist
 Options:
@@ -549,40 +393,91 @@ Options:
   --no-color   force monochrome (also auto-off when piped, or when NO_COLOR is set)
 ```
 
-`ctplot` auto-disables color when its output is piped or redirected — so the chart you pipe
-into a file is clean text, exactly like the blocks above.
+`ctplot` auto-disables color when its output is piped or redirected — so a chart you pipe into
+a file is clean, color-free text.
 
----
+## API reference
 
-## API at a glance
+All public symbols are prefixed `ctp_`. Functions that return `malloc`'d arrays note who frees
+them; everything else hangs off the one `DataSet`.
 
 | Area      | Functions                                                                                               |
 | --------- | ------------------------------------------------------------------------------------------------------- |
-| Lifecycle | `ctp_initialize_dataset`, `ctp_free_dataset`                                                            |
-| Load data | `ctp_add_column`, `ctp_add_row`, `ctp_add_data`, `ctp_read_csv`                                         |
-| Axes      | `ctp_select_axes`, `ctp_reset_axes`                                                                     |
+| Lifecycle | `ctp_initialize_dataset`, `ctp_free_dataset`                                                             |
+| Load data | `ctp_add_column`, `ctp_add_row`, `ctp_add_data`, `ctp_add_label`, `ctp_read_csv`                        |
+| Axes      | `ctp_select_axes`, `ctp_reset_axes`                                                                      |
 | Plot      | `ctp_plot`, `ctp_plot_table`, `ctp_plot_scatter`, `ctp_plot_line`, `ctp_plot_bar`, `ctp_plot_histogram` |
-| Style     | `ctp_set_color`, `ctp_set_graph_braille`, `ctp_set_graph_resolution`, `ctp_set_table_width`, …          |
-| Transform | `ctp_sort`, `ctp_findOne`, `ctp_findMany`, `ctp_reset_find`                                             |
-| Analyze   | `ctp_analyze_mean`, `ctp_analyze_sd`, `ctp_analyze_md`                                                  |
+| Style     | `ctp_set_color`, `ctp_set_graph_braille`, `ctp_set_graph_resolution`, `ctp_set_table_width`, …           |
+| Transform | `ctp_sort`, `ctp_findOne`, `ctp_findMany`, `ctp_reset_find`                                              |
+| Analyze   | `ctp_analyze_mean`, `ctp_analyze_sd`, `ctp_analyze_md` (+ `_search` variants)                           |
+| Inspect   | `ctp_printf_dataset`, `ctp_printf_properties`, `ctp_printf_memory_usage`                                 |
+
+Per-topic guides live in [docs/](docs/) (start at [docs/0_all_docs.md](docs/0_all_docs.md));
+the full public surface is declared in
+[src/include/CTerminalPlotLib.h](src/include/CTerminalPlotLib.h).
 
 ## How it works
 
-Everything hangs off one heap-allocated `DataSet` — column-major `float` cells with
-capacities fixed at `ctp_initialize_dataset`. The vector renderers (line, bar, histogram,
-Braille) rasterize into a small internal **`CtpCanvas`** — a glyph + color grid with a
-Bresenham line-draw — then flush through one boxed-frame printer. Braille is the same idea at
-8×: a boolean dot grid whose 2×4 cells map to code points `0x2800 + mask`.
+Everything hangs off one heap-allocated `DataSet` — **column-major** `float` cells
+(`db[column][row]`) with capacities fixed at `ctp_initialize_dataset`. The vector renderers
+(line, bar, histogram, Braille) rasterize into a small internal **`CtpCanvas`** — a glyph +
+color grid with a Bresenham line-draw — then flush through one boxed-frame printer
+(`ctp_canvas_flush`) plus an X-axis labeller. Braille is the same idea at 8×: a boolean dot
+grid whose 2×4 cells map to the code points `0x2800 + mask`.
 
-See [CLAUDE.md](CLAUDE.md) for the full source map and conventions, and [docs/](docs/) for
-per-topic guides.
+The only OS-specific code (`SetConsoleOutputCP(CP_UTF8)` on Windows) lives behind
+`ctp_platform_init()`, guarded by `#ifdef _WIN32`; elsewhere it falls back to `setlocale`.
+Every public renderer calls it, so a direct `ctp_plot_scatter` still emits correct UTF-8.
 
-## Status & roadmap
+See [CLAUDE.md](CLAUDE.md) for the full source map and conventions.
+
+## Project structure
+
+```text
+CTerminalPlot/
+ ├── src/
+ │   ├── CTerminalPlotLib.c      # the whole library implementation (~2,000 lines)
+ │   ├── include/
+ │   │   └── CTerminalPlotLib.h  # the public API: types, prototypes, config
+ │   └── ctplot.c                # the ctplot CLI front-end
+ ├── examples/                   # runnable, documented programs (0 → 12)
+ │   ├── 0_quickstart.c          #   one call per series → table + scatter
+ │   ├── …                       #   one example per feature
+ │   └── data/sample.csv         #   sample input for the CSV demo
+ ├── tests/
+ │   ├── test_ctp.c              # assertion tests (make test)
+ │   └── golden/*.txt            # captured output; diff to catch regressions
+ ├── docs/                       # per-topic guides
+ ├── assets/                     # README screenshots
+ ├── Makefile                    # build the library, examples, CLI, and tests
+ ├── ROADMAP.md                  # the refactor history & what's next
+ └── CLAUDE.md                   # source map & conventions for contributors
+```
+
+## Roadmap
 
 The library is correct (assertion-tested, leak-clean), structured as a real linkable library,
 portable, and feature-complete for the chart types above. Remaining polish — a plot legend,
 nicer axis ticks, a regression best-fit line, and CI — is tracked in [ROADMAP.md](ROADMAP.md).
 
-## License
+## Contributing
 
-[MIT](LICENSE).
+Issues and pull requests are welcome. A good change:
+
+1. keeps every example building and rendering — run `make && make test` and diff the examples
+   against `tests/golden/`;
+2. if it legitimately alters rendering, regenerates the affected golden file and says so in
+   the commit;
+3. follows the commit-prefix convention (`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`).
+
+See [CLAUDE.md](CLAUDE.md) for the source map, conventions, and the toolchain notes.
+
+## License & origin
+
+Released under the [MIT License](LICENSE).
+
+> _This began as a first-year university C final project — hand-rolled "OOP in C", a dynamic
+> array, and a terminal plotter, written before AI assistants were any good. It has since been
+> refactored into a portfolio piece: correctness and memory-safety fixed, split into a real
+> linkable library, made portable, and given the chart types, CLI, and docs above. The full
+> level-by-level history is in [ROADMAP.md](ROADMAP.md)._
