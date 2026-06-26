@@ -1218,22 +1218,9 @@ void ctp_plot_line(DataSet *dataSet)
         return;
     }
 
-    // Order rows by the shared Y value so connected strokes follow the curve.
-    int *order = (int *)malloc(nrows * sizeof(int));
-    for (int i = 0; i < nrows; i++)
-        order[i] = row0 + i;
-    for (int i = 1; i < nrows; i++)
-    {
-        int key = order[i];
-        CTP_PARAM kv = dataSet->db[y_col][key];
-        int j = i - 1;
-        while (j >= 0 && dataSet->db[y_col][order[j]] > kv)
-        {
-            order[j + 1] = order[j];
-            j--;
-        }
-        order[j + 1] = key;
-    }
+    // Connect points in the data's row order (matplotlib-style): the line follows
+    // the sequence the rows were given in — the least-surprising default, and it
+    // handles both y = f(x) series and x = f(y) curves without tangling.
 
     // Data-space bounds (skip empty cells).
     double xmin = 0, xmax = 0, ymin = 0, ymax = 0;
@@ -1241,7 +1228,7 @@ void ctp_plot_line(DataSet *dataSet)
     for (int k = 0; k < nx; k++)
         for (int i = 0; i < nrows; i++)
         {
-            CTP_PARAM v = dataSet->db[xcols[k]][order[i]];
+            CTP_PARAM v = dataSet->db[xcols[k]][(row0 + i)];
             if (v == CTP_NULL_VALUE)
                 continue;
             if (!xinit) { xmin = xmax = v; xinit = true; }
@@ -1250,7 +1237,7 @@ void ctp_plot_line(DataSet *dataSet)
         }
     for (int i = 0; i < nrows; i++)
     {
-        CTP_PARAM v = dataSet->db[y_col][order[i]];
+        CTP_PARAM v = dataSet->db[y_col][(row0 + i)];
         if (v == CTP_NULL_VALUE)
             continue;
         if (!yinit) { ymin = ymax = v; yinit = true; }
@@ -1260,7 +1247,6 @@ void ctp_plot_line(DataSet *dataSet)
     if (!xinit || !yinit)
     {
         fprintf(stderr, "ctp_plot_line: no plottable data\n");
-        free(order);
         free(xcols);
         return;
     }
@@ -1276,7 +1262,6 @@ void ctp_plot_line(DataSet *dataSet)
     if (!cv)
     {
         fprintf(stderr, "ctp_plot_line: out of memory\n");
-        free(order);
         free(xcols);
         return;
     }
@@ -1291,8 +1276,8 @@ void ctp_plot_line(DataSet *dataSet)
         int pcx = 0, pcy = 0;
         for (int i = 0; i < nrows; i++)
         {
-            CTP_PARAM xv = dataSet->db[xcols[k]][order[i]];
-            CTP_PARAM yv = dataSet->db[y_col][order[i]];
+            CTP_PARAM xv = dataSet->db[xcols[k]][(row0 + i)];
+            CTP_PARAM yv = dataSet->db[y_col][(row0 + i)];
             if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE)
             {
                 have_prev = false;
@@ -1335,7 +1320,6 @@ void ctp_plot_line(DataSet *dataSet)
 
     free(xrow);
     ctp_canvas_free(cv);
-    free(order);
     free(xcols);
 }
 

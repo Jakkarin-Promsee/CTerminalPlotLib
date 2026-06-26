@@ -113,7 +113,7 @@ Key facts:
   `ctp_plot_histogram(ds, bins)`, and `*_search` variants that render `db_search`. The
   line/bar/histogram renderers rasterize via the internal `CtpCanvas` (Bresenham strokes /
   block bars) and flush through `ctp_canvas_flush` (boxed frame + Y scale). Line connects
-  each X series ordered by the shared Y value; bar draws one vertical block bar per row of
+  each X series in row order (the data's natural sequence); bar draws one vertical block bar per row of
   the value column on a zero baseline (green up / red down); histogram bins one column and
   bars the counts (bar + histogram share `ctp_draw_bars`).
 - **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_Y_param`)
