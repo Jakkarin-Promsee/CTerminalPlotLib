@@ -1,4 +1,4 @@
-<!-- 3_Adding_Row -->
+<!-- 3_Adding_Rows -->
 
 # **CTerminalPlotLib - Adding Rows**
 

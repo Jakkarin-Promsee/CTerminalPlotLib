@@ -68,11 +68,11 @@ int available_rows = 7;
 int max_rows = 10;
 
 // data[][max_rows] - Cannot use variable for array size
-CTP_PARAM data[][10] = {
-    {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (y values)
-    {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (x values for series 1)
-    {3, 2, 1, 0, -1, -2, -3}  // Column 2 (x values for series 2)
-};
+    CTP_PARAM data[][10] = {
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
+        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
+    };
 
 ctp_add_data(dataSet, *data, max_rows, available_cols, available_rows);
 ```
@@ -98,9 +98,9 @@ int max_name_length = 20;
 
 // name[][max_name_length] - Cannot use variable for array size
 char name[][20] = {
-    "y",      // Column 0 (y-axis)
-    "y = x",  // Column 1 (first series)
-    "y = -x", // Column 2 (second series)
+    "y",      // Column 0 (default y-axis)
+    "y = x",  // Column 1 (default x-axis)
+    "y = -x", // Column 2 (default x-axis)
 };
 
 ctp_add_label(dataSet, *name, max_name_length, available_name);
@@ -164,7 +164,8 @@ ctp_free_dataset(dataSet);
 #include <stdio.h>
 #include "../src/CTerminalPlotLib.c"
 
-int main() {
+int main()
+{
     // 1. Initialize data set
     int max_cols_size = 3, max_name_length = 20, max_rows_size = 10;
     DataSet *dataSet = ctp_initialize_dataset(max_cols_size, max_name_length, max_rows_size);
@@ -172,9 +173,10 @@ int main() {
     // 2. Prepare data
     int available_cols = 3, available_rows = 7, max_rows = 10;
     CTP_PARAM data[][10] = {
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (x values for series 1)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (x values for series 2)
+        // max_rows = 10
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
+        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
     };
 
     // 3. Add data to data set
@@ -183,9 +185,10 @@ int main() {
     // 4. Prepare labels
     int available_name = 3;
     char name[][20] = {
-        "y",      // Column 0 (y-axis)
-        "y = x",  // Column 1 (first series)
-        "y = -x", // Column 2 (second series)
+        // max_name_length = 20
+        "y",      // Column 0 (default y-axis)
+        "y = x",  // Column 1 (default x-axis)
+        "y = -x", // Column 2 (default x-axis)
     };
 
     // 5. Add labels to data set
@@ -194,7 +197,7 @@ int main() {
     // 6. Display memory usage (optional)
     ctp_printf_memory_usage(dataSet);
 
-    // 7. Create plots
+    // 7. Create plots for both table and scatter
     ctp_plot(dataSet);
 
     // 8. Free allocated memory
@@ -211,3 +214,19 @@ Table output:
 
 Scatter plot:  
 ![Scatter Plot](./images/2_1.png)
+
+## **Use Cases**
+
+Basic usage is particularly useful when:
+
+- You want to plot fixed data you have
+- You don't want more complex code
+- You don't want to adding, filter, or sort data
+
+## **Next Steps**
+
+After learning basic usage
+
+- see [Adding Row](3_Adding-Rows) to understand how to expand your dataset vertically.
+- see [Adding Columns](4_add-col.md) to understand how to expand your dataset horizontally.
+- see [Filter or Search Data]() to understand how to expand your dataset horizontally.

@@ -51,6 +51,6 @@ int main() {
 
 ## **6. Next Steps**
 
-Once you've successfully set up CTerminalPlotLib, proceed to the [Basic Usage Guide](2_basic-usage.md) to learn how to create your first plots.
+Once you've successfully set up CTerminalPlotLib, proceed to the [Basic Usage Guide](2_Basic-Usage.md) to learn how to create your first plots.
 
 For more detailed information, refer to the documentation in the `docs/` folder.
