@@ -1,6 +1,6 @@
 // ctplot — a thin command-line front-end for CTerminalPlotLib.
 //
-//   ctplot data.csv --line --y 1 --x 0
+//   ctplot data.csv --line --x 0 --y 1
 //   cat data.csv | ctplot --bar --y 1
 //
 // Reads a CSV (from a file or stdin), then renders one or more charts. Color is
@@ -32,8 +32,8 @@ static void usage(const char *prog)
             "Charts (combine freely; default: --table --scatter):\n"
             "  --table  --scatter  --line  --bar  --hist\n\n"
             "Options:\n"
-            "  --y N         vertical / value column index\n"
-            "  --x N,N,...   horizontal series column indices\n"
+            "  --x N         horizontal / independent column index (default 0)\n"
+            "  --y N,N,...   vertical series column indices (the values)\n"
             "  --bins N      histogram bin count (default 10)\n"
             "  --braille     high-resolution braille strokes for --line (8x)\n"
             "  --no-color    force monochrome (auto-off when piped or NO_COLOR set)\n"
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     const char *file = NULL;
     bool t = false, sc = false, ln = false, bar = false, hist = false;
     bool no_color = false, braille = false;
-    int y = -1, xarr[64], xn = 0, bins = 10;
+    int x = -1, yarr[64], yn = 0, bins = 10;
 
     for (int i = 1; i < argc; i++)
     {
@@ -74,8 +74,8 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--hist")) hist = true;
         else if (!strcmp(a, "--no-color")) no_color = true;
         else if (!strcmp(a, "--braille")) braille = true;
-        else if (!strcmp(a, "--y") && i + 1 < argc) y = atoi(argv[++i]);
-        else if (!strcmp(a, "--x") && i + 1 < argc) xn = parse_ints(argv[++i], xarr, 64);
+        else if (!strcmp(a, "--x") && i + 1 < argc) x = atoi(argv[++i]);
+        else if (!strcmp(a, "--y") && i + 1 < argc) yn = parse_ints(argv[++i], yarr, 64);
         else if (!strcmp(a, "--bins") && i + 1 < argc) bins = atoi(argv[++i]);
         else if (!strcmp(a, "-h") || !strcmp(a, "--help")) { usage(argv[0]); return 0; }
         else if (a[0] == '-' && a[1] != '\0' && strcmp(a, "-"))
@@ -121,14 +121,20 @@ int main(int argc, char **argv)
     if (braille)
         ctp_set_graph_braille(ds, true);
 
-    // Axis selection (applies to scatter/line; sets the value column for bar/hist).
-    if (y >= 0)
+    // Axis selection (applies to scatter/line; the first Y series is the value
+    // column for bar/hist). --x is the shared horizontal column (default 0).
+    if (yn > 0)
     {
-        if (xn == 0)
-            for (int c = 0; c < ds->db_cols_size; c++)
-                if (c != y) xarr[xn++] = c;
-        if (xn > 0)
-            ctp_select_axes(ds, y, xarr, xn);
+        int xcol = (x >= 0) ? x : 0;
+        ctp_select_axes(ds, xcol, yarr, yn);
+    }
+    else if (x >= 0)
+    {
+        // Only --x given: treat every other column as a Y series.
+        for (int c = 0; c < ds->db_cols_size; c++)
+            if (c != x) yarr[yn++] = c;
+        if (yn > 0)
+            ctp_select_axes(ds, x, yarr, yn);
     }
 
     if (t) ctp_plot_table(ds);

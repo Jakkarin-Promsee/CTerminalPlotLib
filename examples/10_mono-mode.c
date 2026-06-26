@@ -10,14 +10,14 @@ int main(void)
 {
     // --- mono scatter: two series distinguished by marker shape ---
     DataSet *s = ctp_initialize_dataset(3, 20, 16);
-    CTP_PARAM y[] = {-3, -2, -1, 0, 1, 2, 3};
+    CTP_PARAM x[] = {-3, -2, -1, 0, 1, 2, 3}; // shared X axis
     CTP_PARAM a[] = {-3, -2, -1, 0, 1, 2, 3}; // series 0 -> ●
     CTP_PARAM b[] = {9, 4, 1, 0, 1, 4, 9};    // series 1 -> ■
-    ctp_add_column(s, "y", y, 7);
+    ctp_add_column(s, "x", x, 7);
     ctp_add_column(s, "a", a, 7);
     ctp_add_column(s, "b", b, 7);
-    int xs[] = {1, 2};
-    ctp_select_axes(s, 0, xs, 2);
+    int ys[] = {1, 2};
+    ctp_select_axes(s, 0, ys, 2);
     ctp_set_color(s, false);
     ctp_plot_scatter(s);
     ctp_free_dataset(s);

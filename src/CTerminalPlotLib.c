@@ -29,20 +29,9 @@ static const char *CORNER_ALL = "┼";
 static const char *CORNER_VC = "│";
 static const char *CORNER_HZ = "─";
 
-// Scatter scale layout
-static const int Y_SCALE_LENGTH = 5;
-static const int X_SCALE_LENGTH = 5;
-static const int Y_SCALE_MOD = 5;
-static const int X_SCALE_MOD = 15;
+// Spacing knobs for ctp_utils_plot_with_space (front/back padding per cell).
 static const int SPACE_FRONT = 0;
 static const int SPACE_BACK = 0;
-
-// Scatter axis glyphs
-static const char *XY = "┼";
-static const char *Y = "│";
-static const char *X = "─";
-static const char *Y_ORIGIN = "┼";
-static const char *X_ORIGIN = "┼";
 
 // ANSI colors
 static const char *COLOR_RESET = "\033[0m";
@@ -157,9 +146,9 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     dataset->db = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
     dataset->db_search = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
     dataset->db_cal = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
-    dataset->chosen_X_param = (int *)malloc(max_param * sizeof(int));
+    dataset->chosen_Y_param = (int *)malloc(max_param * sizeof(int));
     if (!dataset->label || !dataset->db || !dataset->db_search ||
-        !dataset->db_cal || !dataset->chosen_X_param)
+        !dataset->db_cal || !dataset->chosen_Y_param)
         goto fail;
 
     // Allocate each column buffer and initialise its cells
@@ -193,8 +182,8 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     dataset->db_cols_size_label = 0;
     dataset->db_rows_size = 0;
     dataset->db_search_size = 0;
-    dataset->chosen_Y_param = 0;
-    dataset->chosen_X_param_size = 0;
+    dataset->chosen_X_param = 0;
+    dataset->chosen_Y_param_size = 0;
     dataset->show_begin = 0;
     dataset->show_end = 0;
 
@@ -251,7 +240,7 @@ void ctp_free_dataset(DataSet *dataset)
         free(dataset->db_cal);
     }
 
-    free(dataset->chosen_X_param);
+    free(dataset->chosen_Y_param);
     free(dataset->plotProperties);
     free(dataset);
 }
@@ -352,23 +341,23 @@ void ctp_add_column(DataSet *dataset, const char *name, const CTP_PARAM *values,
     if (dataset->db_rows_size < count)
         dataset->db_rows_size = count;
 }
-void ctp_select_axes(DataSet *dataset, int y_col, const int *x_cols, int x_count)
+void ctp_select_axes(DataSet *dataset, int x_col, const int *y_cols, int y_count)
 {
-    if (dataset == NULL || x_cols == NULL || x_count <= 0)
+    if (dataset == NULL || y_cols == NULL || y_count <= 0)
     {
         fprintf(stderr, "ctp_select_axes: invalid parameters\n");
         return;
     }
-    if (x_count > dataset->max_param)
+    if (y_count > dataset->max_param)
     {
-        fprintf(stderr, "ctp_select_axes: x_count %d exceeds max_param %d\n", x_count, dataset->max_param);
+        fprintf(stderr, "ctp_select_axes: y_count %d exceeds max_param %d\n", y_count, dataset->max_param);
         return;
     }
 
-    dataset->chosen_Y_param = y_col;
-    for (int i = 0; i < x_count; i++)
-        dataset->chosen_X_param[i] = x_cols[i];
-    dataset->chosen_X_param_size = x_count;
+    dataset->chosen_X_param = x_col;
+    for (int i = 0; i < y_count; i++)
+        dataset->chosen_Y_param[i] = y_cols[i];
+    dataset->chosen_Y_param_size = y_count;
 
     // Turn on the customized view and default the row window to "all rows"
     // (otherwise show_end stays 0 and nothing is drawn).
@@ -395,7 +384,7 @@ int ctp_get_dataset_memory_usage(const DataSet *dataSet)
     // Calculate customize PlotProperties
     mem += sizeof(PlotProperties);
 
-    // Calculate memory for chosen_X_param (integer array)
+    // Calculate memory for chosen_Y_param (integer array of series indices)
     mem += dataSet->max_param * sizeof(int);
 
     // Calculate memory for individual integers
@@ -433,10 +422,10 @@ void ctp_printf_properties(const DataSet *dataSet)
 
     printf("db_cols_size: %d\ndb_rows_size: %d\n", dataSet->db_cols_size, dataSet->db_rows_size);
 
-    printf("chosen_Y_param: %d\nchosen_X_param_size: %d\nchosen_X_param: ", dataSet->chosen_Y_param, dataSet->chosen_X_param_size);
-    for (int i = 0; i < dataSet->chosen_X_param_size; i++)
+    printf("chosen_X_param: %d\nchosen_Y_param_size: %d\nchosen_Y_param: ", dataSet->chosen_X_param, dataSet->chosen_Y_param_size);
+    for (int i = 0; i < dataSet->chosen_Y_param_size; i++)
     {
-        printf("%d, ", dataSet->chosen_X_param[i]);
+        printf("%d, ", dataSet->chosen_Y_param[i]);
     }
     printf("\n");
 
@@ -486,15 +475,15 @@ void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b)
         db[i][b] = temp;
     }
 }
-int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high)
+int ctp_utils_partition(CTP_PARAM **db, int key_col, int col, int low, int high)
 {
-    CTP_PARAM pivot = db[chosen_Y_param][high]; // Choose the last element as pivot
-    int i = (low - 1);                          // Index of smaller element
+    CTP_PARAM pivot = db[key_col][high]; // Choose the last element as pivot
+    int i = (low - 1);                   // Index of smaller element
 
     for (int j = low; j < high; j++)
     {
         // If current element is smaller than or equal to pivot
-        if (db[chosen_Y_param][j] < pivot)
+        if (db[key_col][j] < pivot)
         {
             i++; // Increment index of smaller element
             ctp_utils_swap(db, col, i, j);
@@ -503,104 +492,16 @@ int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, in
     ctp_utils_swap(db, col, i + 1, high);
     return (i + 1); // Return the partitioning index
 }
-void ctp_utils_quicksort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high)
+void ctp_utils_quicksort(CTP_PARAM **db, int key_col, int col, int low, int high)
 {
     if (low < high)
     {
         // Partition the array
-        int pi = ctp_utils_partition(db, chosen_Y_param, col, low, high);
+        int pi = ctp_utils_partition(db, key_col, col, low, high);
 
         // Recursively sort elements before and after partition
-        ctp_utils_quicksort(db, chosen_Y_param, col, low, pi - 1);
-        ctp_utils_quicksort(db, chosen_Y_param, col, pi + 1, high);
-    }
-}
-void ctp_utils_sort_db(DataSet *data)
-{
-    ctp_utils_update_db_cal(data);
-    ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
-}
-void ctp_utils_sort_db_by_y_param(DataSet *data)
-{
-    ctp_utils_update_db_cal(data);
-    ctp_utils_quicksort(data->db_cal, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
-}
-void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[])
-{
-    const int SCREEN_W = dataSet->style.screen_w;
-    const int SCREEN_H = dataSet->style.screen_h;
-
-    // Find min and max of X and Y axis (0 : x, 1 : y)
-    bool initialDone[2] = {};
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-    {
-        if (initialDone[0] && initialDone[1])
-            break;
-        if (i == dataSet->chosen_Y_param)
-        {
-            min[1] = dataSet->db_cal[i][dataSet->show_begin];
-            max[1] = dataSet->db_cal[i][dataSet->show_begin];
-            initialDone[1] = true;
-        }
-        else
-        {
-            min[0] = dataSet->db_cal[i][dataSet->show_begin];
-            max[0] = dataSet->db_cal[i][dataSet->show_begin];
-            initialDone[0] = true;
-        }
-    }
-
-    // Find Min and Max by find 1 rows each
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-    {
-        bool isY = (i == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)) ? true : false;
-        for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
-        {
-            if (isY)
-            {
-                if (min[1] > dataSet->db_cal[i][j])
-                    min[1] = dataSet->db_cal[i][j];
-                if (max[1] < dataSet->db_cal[i][j])
-                    max[1] = dataSet->db_cal[i][j];
-            }
-            else
-            {
-                if (min[0] > dataSet->db_cal[i][j])
-                    min[0] = dataSet->db_cal[i][j];
-                if (max[0] < dataSet->db_cal[i][j])
-                    max[0] = dataSet->db_cal[i][j];
-            }
-        }
-    }
-
-    // Guard against divide-by-zero for constant columns (max == min)
-    double range_x = (double)(max[0] - min[0]);
-    double range_y = (double)(max[1] - min[1]);
-    if (range_x == 0.0)
-        range_x = 1.0;
-    if (range_y == 0.0)
-        range_y = 1.0;
-
-    // Calculate normalize
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-    {
-        bool isY = (i == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)) ? true : false;
-        for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
-        {
-            if (isY)
-                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / range_y) * SCREEN_H);
-            else
-                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / range_x) * SCREEN_W);
-        }
-    }
-
-    for (int i = 0; i < 2; i++)
-    {
-        int multiplier = (i == 0) ? SCREEN_W : SCREEN_H;
-        double range = (i == 0) ? range_x : range_y;
-
-        normalize_min[i] = ((double)(min[i]) / range) * multiplier;
-        normalize_max[i] = ((double)(max[i]) / range) * multiplier;
+        ctp_utils_quicksort(db, key_col, col, low, pi - 1);
+        ctp_utils_quicksort(db, key_col, col, pi + 1, high);
     }
 }
 void ctp_utils_plot_with_space(const char s[], const char space[])
@@ -707,29 +608,31 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
     if (print_plot_total)
         printf("%d Plots Total\n", (dataSet->plotProperties->customize_display) ? (dataSet->show_end - dataSet->show_begin) : dataSet->db_rows_size);
 
+    // In the customized view the table shows the X column first, then each Y
+    // series — so the column count is (chosen_Y_param_size + 1).
     // Top Line
     printf("%s", CORNER_TL);
-    for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_X_param_size + 1) : dataSet->db_cols_size); i++)
+    for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_Y_param_size + 1) : dataSet->db_cols_size); i++)
     {
         for (int j = 0; j < TABLE_WIDTH; j++)
         {
             printf("%s", CORNER_HZ);
         }
-        if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : (dataSet->db_cols_size - 1)))
+        if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param_size : (dataSet->db_cols_size - 1)))
             printf("%s", CORNER_BHZ);
     }
     printf("%s", CORNER_TR);
     printf("\n");
 
-    // Print Lable name
+    // Print Lable name (X column first, then the Y series)
     printf("%s", CORNER_VC);
-    printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_Y_param] : dataSet->label[0]));
+    printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_X_param] : dataSet->label[0]));
     for (int k = 0; k < BACK_SPACE; k++)
         printf(" ");
-    for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size_label); i++)
+    for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param_size : dataSet->db_cols_size_label); i++)
     {
         printf("%s", CORNER_VC);
-        printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_X_param[i]] : dataSet->label[i]));
+        printf("%*s", TABLE_WIDTH - BACK_SPACE, ((dataSet->plotProperties->customize_display) ? dataSet->label[dataSet->chosen_Y_param[i]] : dataSet->label[i]));
         for (int k = 0; k < BACK_SPACE; k++)
             printf(" ");
     }
@@ -741,13 +644,13 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
     {
         // Pararel Line
         printf("%s", CORNER_LVC);
-        for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_X_param_size + 1) : dataSet->db_cols_size); i++)
+        for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_Y_param_size + 1) : dataSet->db_cols_size); i++)
         {
             for (int j = 0; j < TABLE_WIDTH; j++)
             {
                 printf("%s", CORNER_HZ);
             }
-            if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : (dataSet->db_cols_size - 1)))
+            if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param_size : (dataSet->db_cols_size - 1)))
                 printf("%s", CORNER_ALL);
         }
         printf("%s", CORNER_RVC);
@@ -755,14 +658,14 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 
         // Data
         printf("%s", CORNER_VC);
-        printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][i]); // Print Y values
+        printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param : 0)][i]); // Print X value
         for (int k = 0; k < BACK_SPACE; k++)
             printf(" ");
-        for (int j = ((dataSet->plotProperties->customize_display) ? 0 : 1); j < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size); j++)
+        for (int j = ((dataSet->plotProperties->customize_display) ? 0 : 1); j < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param_size : dataSet->db_cols_size); j++)
         {
             printf("%s", CORNER_VC);
-            if (db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[j] : j)][i] != CTP_NULL_VALUE)
-                printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[j] : j)][i]); // Print X values
+            if (db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param[j] : j)][i] != CTP_NULL_VALUE)
+                printf("%*.2lf", TABLE_WIDTH - BACK_SPACE, (double)db[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param[j] : j)][i]); // Print Y values
             else
                 printf("%*s", TABLE_WIDTH - BACK_SPACE, "");
 
@@ -775,242 +678,21 @@ void ctp_plot_table_customize(const DataSet *dataSet, CTP_PARAM **db)
 
     // Buttom Line
     printf("%s", CORNER_BL);
-    for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_X_param_size + 1) : dataSet->db_cols_size); i++)
+    for (int i = 0; i < ((dataSet->plotProperties->customize_display) ? (dataSet->chosen_Y_param_size + 1) : dataSet->db_cols_size); i++)
     {
         for (int j = 0; j < TABLE_WIDTH; j++)
         {
             printf("%s", CORNER_HZ);
         }
-        if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : (dataSet->db_cols_size - 1)))
+        if (i != ((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param_size : (dataSet->db_cols_size - 1)))
             printf("%s", CORNER_THZ);
     }
     printf("%s", CORNER_BR);
     printf("\n");
 }
 
-void ctp_plot_scatter(DataSet *dataSet)
-{
-    const int SCREEN_W = dataSet->style.screen_w;
-    const int SCREEN_H = dataSet->style.screen_h;
-    const int BORDER_EDGE = dataSet->style.border_edge;
-    const char *POINT_SINGLE = dataSet->style.point_single;
-    const char *POINT_OVERLAPPED = dataSet->style.point_overlapped;
-    const bool use_color = dataSet->style.use_color;
-
-    // Copy db to db_cal
-    ctp_utils_update_db_cal(dataSet);
-
-    // Sort db_cal
-    if (dataSet->plotProperties->customize_display)
-        ctp_utils_sort_db_by_y_param(dataSet);
-    else
-        ctp_utils_sort_db(dataSet);
-
-    // Print head of graph
-    if (print_plot_total)
-    {
-        printf("%d Plots Total\n", ((dataSet->plotProperties->customize_display) ? dataSet->show_end - dataSet->show_begin : dataSet->db_rows_size));
-        printf("Chart Size : %d x %d\n\n", SCREEN_H, SCREEN_W);
-    }
-
-    // Find min and max of X and Y axis (0 : x, 1 : y)
-    CTP_PARAM min_normalize[2], max_normalize[2], min[2], max[2];
-
-    // Normalize scale of X and Y axis by saving on db_cal and recieve min andmax normalize
-    ctp_utils_normalizes(dataSet, min_normalize, max_normalize, min, max);
-
-    // Declare iterator to find each point on graph
-    int ite = (dataSet->plotProperties->customize_display) ? dataSet->show_end
-                                                           : dataSet->db_rows_size;
-
-    // Top Line
-    char y_str[10];
-    int real_high = (int)ceil(max_normalize[1]) + 2 * BORDER_EDGE - (int)floor(min_normalize[1]) + 2;
-    if (real_high % Y_SCALE_MOD == 0)
-    {
-        sprintf(y_str, "%.1lf", (double)(ceil(max_normalize[1]) + BORDER_EDGE + 1) * (max[1] - min[1]) / SCREEN_H);
-    }
-    else
-        strcpy(y_str, "");
-    printf("%*s ", Y_SCALE_LENGTH, y_str);
-
-    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE; x++)
-    {
-        if (x == (int)floor(min_normalize[0]) - BORDER_EDGE)
-        {
-            printf("%*s", 1, CORNER_TL);
-            for (int i = 0; i < SPACE_BACK + SPACE_FRONT + 1; i++)
-                printf("%*s", 1, X);
-        }
-        else if (x == (int)ceil(max_normalize[0] + BORDER_EDGE - 1))
-        {
-            for (int i = 0; i < SPACE_BACK + SPACE_FRONT + 1; i++)
-                printf("%*s", 1, X);
-            printf("%s", CORNER_TR);
-        }
-
-        else
-            ctp_utils_plot_with_space(X, X);
-    }
-    real_high--;
-    printf("\n");
-
-    // Count y from max to min (high to low)
-    for (int y = (int)ceil(max_normalize[1]) + BORDER_EDGE; y >= (int)floor(min_normalize[1]) - BORDER_EDGE; y--)
-    {
-        // Check that this y point have x
-        int y_stack = 0;
-        if ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - 1]) == y)
-        {
-            y_stack++;
-            ite--;
-
-            while ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_Y_param : 0)][ite - y_stack]) == y)
-            {
-                y_stack++;
-            }
-        }
-
-        sprintf(y_str, "%.1lf", (double)y * (max[1] - min[1]) / SCREEN_H);
-        if (y == 0)
-        {
-            sprintf(y_str, "%.0lf", (double)y * (max[1] - min[1]) / SCREEN_H);
-            printf("%*s ", Y_SCALE_LENGTH, y_str);
-        }
-        else if (real_high % Y_SCALE_MOD == 0)
-            printf("%*s ", Y_SCALE_LENGTH, y_str);
-        else
-            printf("%*s ", Y_SCALE_LENGTH, "");
-
-        if (real_high % Y_SCALE_MOD == 0)
-            ctp_utils_plot_with_space(Y_ORIGIN, "");
-        else
-            ctp_utils_plot_with_space(Y, "");
-
-        // Check amout of point in each x value
-        for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE; x++)
-        {
-            int overlapped = 0;
-            int col_overlapped = 0;
-            int col_stack = 1;
-
-            for (int i = ((dataSet->plotProperties->customize_display) ? 0 : 1); i < ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param_size : dataSet->db_cols_size); i++)
-            {
-                bool isFistForThisCol = false;
-                for (int j = 0; j < y_stack; j++)
-                {
-                    if ((int)floor(dataSet->db_cal[((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[i] : i)][ite - j]) == x)
-                    {
-                        if (!isFistForThisCol)
-                            isFistForThisCol = true;
-                        else
-                            col_stack++;
-                        overlapped++;
-                        col_overlapped = ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[i] : (i - 1));
-                    }
-                }
-            }
-
-            if (overlapped - col_stack >= 0 && y_stack >= 1)
-            {
-                if (overlapped - col_stack == 0)
-                {
-                    col_overlapped %= 4;
-                    if (use_color)
-                    {
-                        if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[0] : 0))
-                            ctp_utils_print_color(COLOR_RED);
-                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[1] : 1))
-                            ctp_utils_print_color(COLOR_BLUE);
-                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[2] : 2))
-                            ctp_utils_print_color(COLOR_YELLOW);
-                        else if (col_overlapped == ((dataSet->plotProperties->customize_display) ? dataSet->chosen_X_param[3] : 3))
-                            ctp_utils_print_color(COLOR_MAGENTA);
-                        else
-                            ctp_utils_print_color(COLOR_RESET);
-                        ctp_utils_plot_with_space(POINT_SINGLE, " ");
-                    }
-                    else
-                    {
-                        // Monochrome: tell series apart by marker shape, not color.
-                        ctp_utils_plot_with_space(MONO_MARKERS[col_overlapped], " ");
-                    }
-                }
-                else
-                {
-                    if (use_color)
-                    {
-                        ctp_utils_print_color(COLOR_GREEN);
-                        ctp_utils_plot_with_space(POINT_OVERLAPPED, " ");
-                    }
-                    else
-                        ctp_utils_plot_with_space(MONO_OVERLAP, " ");
-                }
-                if (use_color)
-                    ctp_utils_print_color(COLOR_RESET);
-            }
-            else
-            {
-                if (x == 0 && y == 0)
-                    ctp_utils_plot_with_space(XY, X);
-                else if (x == 0)
-                    ctp_utils_plot_with_space(Y, " ");
-                else if (y == 0)
-                    ctp_utils_plot_with_space(X, X);
-                else
-                    ctp_utils_plot_with_space(" ", " ");
-            }
-        }
-        ctp_utils_plot_with_space(Y, "");
-        real_high--;
-        printf("\n");
-    }
-
-    // Buttom Line
-    int x_start = 0;
-    sprintf(y_str, "%.1lf", (double)(floor(min_normalize[1]) - BORDER_EDGE - 1) * (max[1] - min[1]) / SCREEN_H);
-    printf("%*s ", Y_SCALE_LENGTH, y_str);
-    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE + 2;)
-    {
-        if (x_start % X_SCALE_MOD == 0)
-        {
-            printf("%*s", 1, X_ORIGIN);
-        }
-        else if (x == (int)ceil(max_normalize[0]) + BORDER_EDGE + 1)
-        {
-            printf("%*s", 1, CORNER_BR);
-        }
-        else
-        {
-            printf("%*s", 1, X);
-        }
-        x += 1;
-        x_start += 1;
-    }
-    printf("\n");
-
-    // Button line scale
-    char x_str[10];
-    x_start = 0;
-    printf("%*s", Y_SCALE_LENGTH - 2, "");
-    for (int x = (int)floor(min_normalize[0]) - BORDER_EDGE; x < (int)ceil(max_normalize[0]) + BORDER_EDGE + 2;)
-    {
-        sprintf(x_str, "%.1lf", (double)x * (max[0] - min[0]) / SCREEN_W);
-        if (x_start % X_SCALE_MOD == 0)
-        {
-            printf("%*s", X_SCALE_LENGTH, x_str);
-            x += X_SCALE_LENGTH;
-            x_start += X_SCALE_LENGTH;
-        }
-        else
-        {
-            printf("%*s", 1, "");
-            x += 1;
-            x_start += 1;
-        }
-    }
-    printf("\n");
-}
+// ctp_plot_scatter is defined further down, alongside the other CtpCanvas-based
+// renderers (line/bar/braille) it now shares its rasterization with.
 void ctp_plot_scatter_search(DataSet *dataSet)
 {
     CTP_PARAM **temp_db = dataSet->db;
@@ -1179,6 +861,54 @@ static void ctp_canvas_flush(const CtpCanvas *cv, int lab_w, double ymin, double
     printf("%s\n", CORNER_BR);
 }
 
+// Print the numeric X-axis tick row (left / middle / right) under a flushed
+// canvas. Shared by the line, scatter, and histogram renderers.
+static void ctp_canvas_print_xaxis(int W, int lab_w, double xmin, double xmax)
+{
+    char *xrow = (char *)malloc(W + 1);
+    if (!xrow)
+        return;
+    for (int i = 0; i < W; i++)
+        xrow[i] = ' ';
+    xrow[W] = '\0';
+    char tick[24];
+    snprintf(tick, sizeof tick, "%.2f", xmin);
+    ctp_canvas_place(xrow, W, 0, tick);
+    snprintf(tick, sizeof tick, "%.2f", (xmin + xmax) / 2);
+    ctp_canvas_place(xrow, W, W / 2 - (int)strlen(tick) / 2, tick);
+    snprintf(tick, sizeof tick, "%.2f", xmax);
+    ctp_canvas_place(xrow, W, W - (int)strlen(tick), tick);
+    printf("%*s%s\n", lab_w + 1, "", xrow);
+    free(xrow);
+}
+
+// Draw the zero reference axes into the canvas as a background layer: a vertical
+// line at x = 0 and a horizontal line at y = 0, but only where 0 falls within the
+// data range, crossing at ┼. Call before rasterizing data so markers/strokes draw
+// on top of the axes.
+static void ctp_canvas_draw_axes(CtpCanvas *cv, double xmin, double xmax, double ymin, double ymax)
+{
+    const int W = cv->w, H = cv->h;
+    double xr = xmax - xmin;
+    if (xr == 0)
+        xr = 1;
+    double yr = ymax - ymin;
+    if (yr == 0)
+        yr = 1;
+
+    int x0 = (xmin <= 0 && xmax >= 0) ? ctp_canvas_map(0.0, xmin, xr, W) : -1;
+    int y0 = (ymin <= 0 && ymax >= 0) ? (H - 1) - ctp_canvas_map(0.0, ymin, yr, H) : -1;
+
+    if (y0 >= 0)
+        for (int cx = 0; cx < W; cx++)
+            ctp_canvas_set(cv, cx, y0, "─", NULL);
+    if (x0 >= 0)
+        for (int cy = 0; cy < H; cy++)
+            ctp_canvas_set(cv, x0, cy, "│", NULL);
+    if (x0 >= 0 && y0 >= 0)
+        ctp_canvas_set(cv, x0, y0, "┼", NULL);
+}
+
 // --- High-resolution Braille rendering --------------------------------------
 // A Braille cell packs a 2x4 dot grid, so a W x H character canvas addresses a
 // 2W x 4H pixel grid — 8x the resolution. Each lit dot maps to a bit of the
@@ -1229,9 +959,9 @@ static void ctp_braille_line(unsigned char *mask, const char **cellcolor, int w,
     }
 }
 
-// Rasterize each series into the canvas as high-res braille strokes (8x).
-static void ctp_rasterize_braille(CtpCanvas *cv, const DataSet *ds, const int *xcols, int nx,
-                                  int y_col, int row0, int nrows,
+// Rasterize each Y series against the shared X column as high-res braille (8x).
+static void ctp_rasterize_braille(CtpCanvas *cv, const DataSet *ds, int x_col, const int *ycols, int ny,
+                                  int row0, int nrows,
                                   double xmin, double xr, double ymin, double yr, bool use_color)
 {
     const int W = cv->w, H = cv->h;
@@ -1245,15 +975,15 @@ static void ctp_rasterize_braille(CtpCanvas *cv, const DataSet *ds, const int *x
     }
 
     const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
-    for (int k = 0; k < nx; k++)
+    for (int k = 0; k < ny; k++)
     {
         const char *color = use_color ? palette[k % 4] : NULL;
         bool have_prev = false;
         int ppx = 0, ppy = 0;
         for (int i = 0; i < nrows; i++)
         {
-            CTP_PARAM xv = ds->db[xcols[k]][row0 + i];
-            CTP_PARAM yv = ds->db[y_col][row0 + i];
+            CTP_PARAM xv = ds->db[x_col][row0 + i];
+            CTP_PARAM yv = ds->db[ycols[k]][row0 + i];
             if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE) { have_prev = false; continue; }
             int px = ctp_canvas_map(xv, xmin, xr, 2 * W);
             int py = (4 * H - 1) - ctp_canvas_map(yv, ymin, yr, 4 * H);
@@ -1279,15 +1009,16 @@ static void ctp_rasterize_braille(CtpCanvas *cv, const DataSet *ds, const int *x
     free(cellcolor);
 }
 
-// Rasterize each series into the canvas as ordinary char-cell strokes + markers.
-static void ctp_rasterize_lines(CtpCanvas *cv, const DataSet *ds, const int *xcols, int nx,
-                                int y_col, int row0, int nrows,
+// Rasterize each Y series against the shared X column as ordinary char-cell
+// strokes + markers.
+static void ctp_rasterize_lines(CtpCanvas *cv, const DataSet *ds, int x_col, const int *ycols, int ny,
+                                int row0, int nrows,
                                 double xmin, double xr, double ymin, double yr,
                                 bool use_color, const char *point)
 {
     const int W = cv->w, H = cv->h;
     const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
-    for (int k = 0; k < nx; k++)
+    for (int k = 0; k < ny; k++)
     {
         // Color mode: one hue per series, shared point glyph. Mono: no color,
         // per-series marker shape so the lines are still distinguishable.
@@ -1297,8 +1028,8 @@ static void ctp_rasterize_lines(CtpCanvas *cv, const DataSet *ds, const int *xco
         int pcx = 0, pcy = 0;
         for (int i = 0; i < nrows; i++)
         {
-            CTP_PARAM xv = ds->db[xcols[k]][row0 + i];
-            CTP_PARAM yv = ds->db[y_col][row0 + i];
+            CTP_PARAM xv = ds->db[x_col][row0 + i];
+            CTP_PARAM yv = ds->db[ycols[k]][row0 + i];
             if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE) { have_prev = false; continue; }
             int cx = ctp_canvas_map(xv, xmin, xr, W);
             int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
@@ -1312,130 +1043,245 @@ static void ctp_rasterize_lines(CtpCanvas *cv, const DataSet *ds, const int *xco
     }
 }
 
-// Line plot: connect each X series' points (in row order) with straight strokes,
-// or high-res braille when style.braille is on. Same axis selection as scatter.
+// Rasterize each Y series against the shared X column as standalone markers (no
+// connecting strokes) — the scatter plot. When markers from two different series
+// land in the same cell the cell shows the overlap glyph instead.
+static void ctp_rasterize_points(CtpCanvas *cv, const DataSet *ds, int x_col, const int *ycols, int ny,
+                                 int row0, int nrows,
+                                 double xmin, double xr, double ymin, double yr,
+                                 bool use_color, const char *point, const char *point_overlap)
+{
+    const int W = cv->w, H = cv->h;
+    const char *palette[4] = {COLOR_RED, COLOR_BLUE, COLOR_YELLOW, COLOR_MAGENTA};
+
+    // Track which series owns each cell so distinct-series collisions become an
+    // overlap marker: -1 = empty, -2 = already an overlap, >= 0 = series index.
+    int *owner = (int *)malloc((size_t)W * H * sizeof(int));
+    if (!owner)
+        return;
+    for (int i = 0; i < W * H; i++)
+        owner[i] = -1;
+
+    for (int k = 0; k < ny; k++)
+    {
+        const char *color = use_color ? palette[k % 4] : NULL;
+        const char *marker = use_color ? point : MONO_MARKERS[k % 4];
+        for (int i = 0; i < nrows; i++)
+        {
+            CTP_PARAM xv = ds->db[x_col][row0 + i];
+            CTP_PARAM yv = ds->db[ycols[k]][row0 + i];
+            if (xv == CTP_NULL_VALUE || yv == CTP_NULL_VALUE)
+                continue;
+            int cx = ctp_canvas_map(xv, xmin, xr, W);
+            int cy = (H - 1) - ctp_canvas_map(yv, ymin, yr, H);
+            int idx = cy * W + cx;
+            if (owner[idx] == -1)
+            {
+                ctp_canvas_set(cv, cx, cy, marker, color);
+                owner[idx] = k;
+            }
+            else if (owner[idx] != k && owner[idx] != -2)
+            {
+                // A different series already drew here -> mark the overlap.
+                if (use_color)
+                    ctp_canvas_set(cv, cx, cy, point_overlap, COLOR_GREEN);
+                else
+                    ctp_canvas_set(cv, cx, cy, MONO_OVERLAP, NULL);
+                owner[idx] = -2;
+            }
+            // owner[idx] == k (same series) or -2 (overlap): leave it as is.
+        }
+    }
+    free(owner);
+}
+
+// X column + Y series + row window + data-space bounds shared by the line and
+// scatter renderers (both plot the same X-vs-series geometry on a CtpCanvas).
+typedef struct
+{
+    int x_col;                     // the shared, independent X column
+    int *ycols;                    // the Y series columns (malloc'd; caller frees)
+    int ny;                        // number of Y series
+    int row0;                      // first row of the active window
+    int nrows;                     // rows in the active window
+    double xmin, xmax, ymin, ymax; // data-space bounds
+} CtpXY;
+
+// Fill `out` from the dataset's axis selection, or the default convention
+// (column 0 = X, columns 1.. = Y series). Allocates out->ycols. Returns false
+// (after cleanup) and prints a message tagged `who` when there is nothing to plot.
+static bool ctp_xy_prepare(const DataSet *ds, const char *who, CtpXY *out)
+{
+    const bool custom = ds->plotProperties->customize_display;
+    out->x_col = custom ? ds->chosen_X_param : 0;
+    out->row0 = custom ? ds->show_begin : 0;
+    int row1 = custom ? ds->show_end : ds->db_rows_size;
+    out->nrows = row1 - out->row0;
+
+    if (custom)
+    {
+        out->ny = ds->chosen_Y_param_size;
+        out->ycols = (int *)malloc((out->ny > 0 ? out->ny : 1) * sizeof(int));
+        if (!out->ycols)
+            return false;
+        for (int k = 0; k < out->ny; k++)
+            out->ycols[k] = ds->chosen_Y_param[k];
+    }
+    else
+    {
+        out->ny = ds->db_cols_size - 1; // columns 1.. are the Y series
+        out->ycols = (int *)malloc((out->ny > 0 ? out->ny : 1) * sizeof(int));
+        if (!out->ycols)
+            return false;
+        for (int k = 0; k < out->ny; k++)
+            out->ycols[k] = k + 1;
+    }
+
+    if (out->nrows <= 0 || out->ny <= 0)
+    {
+        fprintf(stderr, "%s: need at least one row and one Y series\n", who);
+        free(out->ycols);
+        return false;
+    }
+
+    // Data-space bounds: X over the shared column, Y over every series (skip empties).
+    bool xinit = false, yinit = false;
+    out->xmin = out->xmax = out->ymin = out->ymax = 0;
+    for (int i = 0; i < out->nrows; i++)
+    {
+        CTP_PARAM xv = ds->db[out->x_col][out->row0 + i];
+        if (xv == CTP_NULL_VALUE)
+            continue;
+        if (!xinit) { out->xmin = out->xmax = xv; xinit = true; }
+        else if (xv < out->xmin) out->xmin = xv;
+        else if (xv > out->xmax) out->xmax = xv;
+    }
+    for (int k = 0; k < out->ny; k++)
+        for (int i = 0; i < out->nrows; i++)
+        {
+            CTP_PARAM yv = ds->db[out->ycols[k]][out->row0 + i];
+            if (yv == CTP_NULL_VALUE)
+                continue;
+            if (!yinit) { out->ymin = out->ymax = yv; yinit = true; }
+            else if (yv < out->ymin) out->ymin = yv;
+            else if (yv > out->ymax) out->ymax = yv;
+        }
+    if (!xinit || !yinit)
+    {
+        fprintf(stderr, "%s: no plottable data\n", who);
+        free(out->ycols);
+        return false;
+    }
+    return true;
+}
+
+// Line plot: connect each Y series' points (in row order) against the shared X
+// column with straight strokes, or high-res braille when style.braille is on.
+// Column 0 is X by default; ctp_select_axes overrides which column is X.
 void ctp_plot_line(DataSet *dataSet)
 {
     ctp_platform_init();
 
-    const bool custom = dataSet->plotProperties->customize_display;
     const int W = dataSet->style.screen_w;
     const int H = dataSet->style.screen_h;
     const char *POINT = dataSet->style.point_single;
     const bool use_color = dataSet->style.use_color;
-
-    const int y_col = custom ? dataSet->chosen_Y_param : 0;
-    const int row0 = custom ? dataSet->show_begin : 0;
-    const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
-    const int nrows = row1 - row0;
-    if (nrows <= 0 || W < 2 || H < 2)
+    if (W < 2 || H < 2)
     {
-        fprintf(stderr, "ctp_plot_line: nothing to draw (need rows and a >=2x2 canvas)\n");
+        fprintf(stderr, "ctp_plot_line: need a >=2x2 canvas\n");
         return;
     }
 
-    // Which columns are the X series?
-    int nx, *xcols;
-    if (custom)
-    {
-        nx = dataSet->chosen_X_param_size;
-        xcols = (int *)malloc((nx > 0 ? nx : 1) * sizeof(int));
-        for (int k = 0; k < nx; k++)
-            xcols[k] = dataSet->chosen_X_param[k];
-    }
-    else
-    {
-        nx = dataSet->db_cols_size - 1;
-        xcols = (int *)malloc((nx > 0 ? nx : 1) * sizeof(int));
-        for (int k = 0; k < nx; k++)
-            xcols[k] = k + 1;
-    }
-    if (nx <= 0)
-    {
-        fprintf(stderr, "ctp_plot_line: need at least one X series\n");
-        free(xcols);
+    CtpXY xy;
+    if (!ctp_xy_prepare(dataSet, "ctp_plot_line", &xy))
         return;
-    }
 
     // Connect points in the data's row order (matplotlib-style): the line follows
-    // the sequence the rows were given in — the least-surprising default, and it
-    // handles both y = f(x) series and x = f(y) curves without tangling.
-
-    // Data-space bounds (skip empty cells).
-    double xmin = 0, xmax = 0, ymin = 0, ymax = 0;
-    bool xinit = false, yinit = false;
-    for (int k = 0; k < nx; k++)
-        for (int i = 0; i < nrows; i++)
-        {
-            CTP_PARAM v = dataSet->db[xcols[k]][(row0 + i)];
-            if (v == CTP_NULL_VALUE)
-                continue;
-            if (!xinit) { xmin = xmax = v; xinit = true; }
-            else if (v < xmin) xmin = v;
-            else if (v > xmax) xmax = v;
-        }
-    for (int i = 0; i < nrows; i++)
-    {
-        CTP_PARAM v = dataSet->db[y_col][(row0 + i)];
-        if (v == CTP_NULL_VALUE)
-            continue;
-        if (!yinit) { ymin = ymax = v; yinit = true; }
-        else if (v < ymin) ymin = v;
-        else if (v > ymax) ymax = v;
-    }
-    if (!xinit || !yinit)
-    {
-        fprintf(stderr, "ctp_plot_line: no plottable data\n");
-        free(xcols);
-        return;
-    }
-    double xr = xmax - xmin;
+    // the sequence the rows were given in.
+    double xr = xy.xmax - xy.xmin;
     if (xr == 0)
         xr = 1;
-    double yr = ymax - ymin;
+    double yr = xy.ymax - xy.ymin;
     if (yr == 0)
         yr = 1;
 
-    // Rasterize each series into the canvas.
     CtpCanvas *cv = ctp_canvas_new(W, H);
     if (!cv)
     {
         fprintf(stderr, "ctp_plot_line: out of memory\n");
-        free(xcols);
+        free(xy.ycols);
         return;
     }
     if (dataSet->style.braille)
-        ctp_rasterize_braille(cv, dataSet, xcols, nx, y_col, row0, nrows, xmin, xr, ymin, yr, use_color);
+        ctp_rasterize_braille(cv, dataSet, xy.x_col, xy.ycols, xy.ny, xy.row0, xy.nrows, xy.xmin, xr, xy.ymin, yr, use_color);
     else
-        ctp_rasterize_lines(cv, dataSet, xcols, nx, y_col, row0, nrows, xmin, xr, ymin, yr, use_color, POINT);
+        ctp_rasterize_lines(cv, dataSet, xy.x_col, xy.ycols, xy.ny, xy.row0, xy.nrows, xy.xmin, xr, xy.ymin, yr, use_color, POINT);
 
-    // ---- flush canvas with axes ----
     const int LAB = 6; // width reserved for the Y-axis scale labels
     if (print_plot_total)
     {
-        printf("%d Plots Total\n", nrows);
+        printf("%d Plots Total\n", xy.nrows);
         printf("Chart Size : %d x %d\n\n", H, W);
     }
 
-    ctp_canvas_flush(cv, LAB, ymin, ymax);
+    ctp_canvas_flush(cv, LAB, xy.ymin, xy.ymax);
+    ctp_canvas_print_xaxis(W, LAB, xy.xmin, xy.xmax);
 
-    // X-axis ticks: left / middle / right
-    char *xrow = (char *)malloc(W + 1);
-    for (int i = 0; i < W; i++)
-        xrow[i] = ' ';
-    xrow[W] = '\0';
-    char tick[24];
-    snprintf(tick, sizeof tick, "%.2f", xmin);
-    ctp_canvas_place(xrow, W, 0, tick);
-    snprintf(tick, sizeof tick, "%.2f", (xmin + xmax) / 2);
-    ctp_canvas_place(xrow, W, W / 2 - (int)strlen(tick) / 2, tick);
-    snprintf(tick, sizeof tick, "%.2f", xmax);
-    ctp_canvas_place(xrow, W, W - (int)strlen(tick), tick);
-    printf("%*s%s\n", LAB + 1, "", xrow);
-
-    free(xrow);
     ctp_canvas_free(cv);
-    free(xcols);
+    free(xy.ycols);
+}
+
+// Scatter plot: draw each Y series against the shared X column as standalone
+// markers on a CtpCanvas. Column 0 is X by default; ctp_select_axes overrides
+// which column is X and which are the Y series.
+void ctp_plot_scatter(DataSet *dataSet)
+{
+    ctp_platform_init();
+
+    const int W = dataSet->style.screen_w;
+    const int H = dataSet->style.screen_h;
+    const char *POINT = dataSet->style.point_single;
+    const char *POINT_OVERLAP = dataSet->style.point_overlapped;
+    const bool use_color = dataSet->style.use_color;
+    if (W < 2 || H < 2)
+    {
+        fprintf(stderr, "ctp_plot_scatter: need a >=2x2 canvas\n");
+        return;
+    }
+
+    CtpXY xy;
+    if (!ctp_xy_prepare(dataSet, "ctp_plot_scatter", &xy))
+        return;
+
+    double xr = xy.xmax - xy.xmin;
+    if (xr == 0)
+        xr = 1;
+    double yr = xy.ymax - xy.ymin;
+    if (yr == 0)
+        yr = 1;
+
+    CtpCanvas *cv = ctp_canvas_new(W, H);
+    if (!cv)
+    {
+        fprintf(stderr, "ctp_plot_scatter: out of memory\n");
+        free(xy.ycols);
+        return;
+    }
+    ctp_canvas_draw_axes(cv, xy.xmin, xy.xmax, xy.ymin, xy.ymax); // zero crosshair behind the points
+    ctp_rasterize_points(cv, dataSet, xy.x_col, xy.ycols, xy.ny, xy.row0, xy.nrows, xy.xmin, xr, xy.ymin, yr, use_color, POINT, POINT_OVERLAP);
+
+    const int LAB = 6;
+    if (print_plot_total)
+    {
+        printf("%d Plots Total\n", xy.nrows);
+        printf("Chart Size : %d x %d\n\n", H, W);
+    }
+
+    ctp_canvas_flush(cv, LAB, xy.ymin, xy.ymax);
+    ctp_canvas_print_xaxis(W, LAB, xy.xmin, xy.xmax);
+
+    ctp_canvas_free(cv);
+    free(xy.ycols);
 }
 
 // Fill vertical bars into a canvas: one bar per value, scaled to [lo, hi] with a
@@ -1471,8 +1317,9 @@ static void ctp_draw_bars(CtpCanvas *cv, const double *vals, int n, double lo, d
     }
 }
 
-// Bar chart: one vertical bar per row of the value column (chosen Y if axes are
-// selected, else column 0). Bars share a zero baseline so negatives drop below.
+// Bar chart: one vertical bar per row of the value column (the first selected Y
+// series if axes are selected, else column 0). Bars share a zero baseline so
+// negatives drop below.
 void ctp_plot_bar(DataSet *dataSet)
 {
     ctp_platform_init();
@@ -1480,7 +1327,7 @@ void ctp_plot_bar(DataSet *dataSet)
     const bool custom = dataSet->plotProperties->customize_display;
     const int W = dataSet->style.screen_w;
     const int H = dataSet->style.screen_h;
-    const int val_col = custom ? dataSet->chosen_Y_param : 0;
+    const int val_col = custom ? dataSet->chosen_Y_param[0] : 0;
     const int row0 = custom ? dataSet->show_begin : 0;
     const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
     const int n = row1 - row0;
@@ -1553,7 +1400,7 @@ void ctp_plot_histogram(DataSet *dataSet, int bins)
     const bool custom = dataSet->plotProperties->customize_display;
     const int W = dataSet->style.screen_w;
     const int H = dataSet->style.screen_h;
-    const int col = custom ? dataSet->chosen_Y_param : 0;
+    const int col = custom ? dataSet->chosen_Y_param[0] : 0;
     const int row0 = custom ? dataSet->show_begin : 0;
     const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
     const int n = row1 - row0;
@@ -1620,38 +1467,26 @@ void ctp_plot_histogram(DataSet *dataSet, int bins)
     ctp_canvas_flush(cv, LAB, 0, maxc);
 
     // X-axis: the binned data range (left / middle / right edges).
-    char *xrow = (char *)malloc(W + 1);
-    for (int i = 0; i < W; i++)
-        xrow[i] = ' ';
-    xrow[W] = '\0';
-    char tick[24];
-    snprintf(tick, sizeof tick, "%.2f", dmin);
-    ctp_canvas_place(xrow, W, 0, tick);
-    snprintf(tick, sizeof tick, "%.2f", (dmin + dmax) / 2);
-    ctp_canvas_place(xrow, W, W / 2 - (int)strlen(tick) / 2, tick);
-    snprintf(tick, sizeof tick, "%.2f", dmax);
-    ctp_canvas_place(xrow, W, W - (int)strlen(tick), tick);
-    printf("%*s%s\n", LAB + 1, "", xrow);
+    ctp_canvas_print_xaxis(W, LAB, dmin, dmax);
 
-    free(xrow);
     ctp_canvas_free(cv);
     free(counts);
 }
 
-// Sort Function - use to sort all data
+// Sort Function - use to sort all data (by the X column — the shared axis)
 void ctp_sort(DataSet *data)
 {
     if (data->plotProperties->customize_display)
-        ctp_utils_quicksort(data->db, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
+        ctp_utils_quicksort(data->db, data->chosen_X_param, data->db_cols_size, data->show_begin, data->show_end - 1);
     else
-        ctp_utils_quicksort(data->db, data->chosen_Y_param, data->db_cols_size, 0, data->db_rows_size - 1);
+        ctp_utils_quicksort(data->db, data->chosen_X_param, data->db_cols_size, 0, data->db_rows_size - 1);
 }
 void ctp_sort_search(DataSet *data)
 {
     if (data->plotProperties->customize_display)
-        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, data->show_begin, data->show_end - 1);
+        ctp_utils_quicksort(data->db_search, data->chosen_X_param, data->db_cols_size, data->show_begin, data->show_end - 1);
     else
-        ctp_utils_quicksort(data->db_search, data->chosen_Y_param, data->db_cols_size, 0, data->db_search_size - 1);
+        ctp_utils_quicksort(data->db_search, data->chosen_X_param, data->db_cols_size, 0, data->db_search_size - 1);
 }
 
 // Search Function - use to filter all data

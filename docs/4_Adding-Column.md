@@ -3,47 +3,49 @@
 # CTerminalPlot — Adding Columns & Choosing Axes
 
 Adding another data series is just another `ctp_add_column` call (up to the `max_param` you
-set at init). The more interesting question is **which** column is the vertical axis and
-which are plotted against it — that's what `ctp_select_axes` controls.
+set at init). The more interesting question is **which** column is the horizontal X axis and
+which columns are the Y series plotted against it — that's what `ctp_select_axes` controls.
 
 ## Adding more columns
 
 ```c
 DataSet *ds = ctp_initialize_dataset(/*cols*/ 4, /*name*/ 20, /*rows*/ 16);
 
-ctp_add_column(ds, "y",  (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
-ctp_add_column(ds, "x1", (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
-ctp_add_column(ds, "x2", (CTP_PARAM[]){ 3, 2, 1,0,-1,-2,-3}, 7);
-ctp_add_column(ds, "x3", (CTP_PARAM[]){ 9, 4, 1,0,1,4,9}, 7);
+ctp_add_column(ds, "x",       (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
+ctp_add_column(ds, "y = x",   (CTP_PARAM[]){-3,-2,-1,0,1,2,3}, 7);
+ctp_add_column(ds, "y = -x",  (CTP_PARAM[]){ 3, 2, 1,0,-1,-2,-3}, 7);
+ctp_add_column(ds, "y = x^2", (CTP_PARAM[]){ 9, 4, 1,0,1,4,9}, 7);
 ```
 
-By default the first column (index 0) is the vertical axis and **every** other column is
-drawn as a series against it.
+By default the first column (index 0) is the horizontal **X** axis and **every** other column
+is drawn as a **Y** series against it.
 
 ## Choosing the axes
 
 ```c
-void ctp_select_axes(DataSet *ds, int y_col, const int *x_cols, int x_count);
+void ctp_select_axes(DataSet *ds, int x_col, const int *y_cols, int y_count);
 void ctp_reset_axes(DataSet *ds);
 ```
 
-Pick the Y column and an explicit list of X columns. This both **restricts** the plot to
+Pick the X column and an explicit list of Y columns. This both **restricts** the plot to
 those columns and enables the "customized" view (table and charts then show only the selected
-columns). Here we plot `y` against `x1` and `x3`, **skipping `x2`**:
+columns). Here X is column 0, and we plot `y = x` and `y = x^2`, **skipping `y = -x`**:
 
 ```c
-int x_axes[] = {1, 3};            // columns x1 and x3 (skip x2 at index 2)
-ctp_select_axes(ds, 0, x_axes, 2); // y_col = 0
+int y_series[] = {1, 3};             // columns y=x and y=x^2 (skip y=-x at index 2)
+ctp_select_axes(ds, 0, y_series, 2); // x_col = 0
 ctp_plot(ds);
 ```
 
 ### Output
 
-The table shows only `y`, `x1`, `x3`; the scatter plots those two series (skipping `x2`):
+The table shows only `x`, `y = x`, `y = x^2`; the scatter plots those two series against X
+(skipping `y = -x`). `y = x` rises on the diagonal (`●`) and `y = x^2` traces an upward
+parabola (`■`):
 
 ```
 ┌──────────┬──────────┬──────────┐
-│       y  │      x1  │      x3  │
+│       x  │   y = x  │ y = x^2  │
 ├──────────┼──────────┼──────────┤
 │   -3.00  │   -3.00  │    9.00  │
 ├──────────┼──────────┼──────────┤
@@ -51,29 +53,41 @@ The table shows only `y`, `x1`, `x3`; the scatter plots those two series (skippi
 ├──────────┼──────────┼──────────┤
 │    3.00  │    3.00  │    9.00  │
 └──────────┴──────────┴──────────┘
-      ┌────────────────────────────────────────────────────────────────┐
-  3.6 ┼                 │              ■                             ◆ │
-      │                 │                                              │
-  2.1 ┼                 │         ■         ◆                          │
-      │                 │    ⊕                                         │
-    0 │─────────────────⊕──────────────────────────────────────────────│
- -0.9 ┼            ■    │    ◆                                         │
-      │       ■         │                   ◆                          │
-      │  ■              │                                            ◆ │
- -3.9 ┼──────────────┼──────────────┼──────────────┼──────────────┼────┘
-    -3.4           -0.4            2.6            5.6            8.6
+      ┌────────────────────────────────────────────────────────────┐
+  9.00│■                             │                            ■│
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+  5.84│                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │          ■                   │                  ■          │
+      │                              │                            ●│
+  2.68│                              │                             │
+      │                              │                  ●          │
+      │                              │                             │
+      │                    ■         │        ⊕                    │
+      │──────────────────────────────⊕─────────────────────────────│
+ -0.47│                              │                             │
+      │                    ●         │                             │
+      │          ●                   │                             │
+      │                              │                             │
+ -3.00│●                             │                             │
+      └────────────────────────────────────────────────────────────┘
+       -3.00                       0.00                        3.00
 ```
 
-`ctp_reset_axes(ds)` returns to the default (all columns, column 0 as Y).
+`ctp_reset_axes(ds)` returns to the default (all columns, column 0 as X).
 
 ## The same selection feeds the charts
 
 Axis selection drives every renderer, not just the scatter:
 
-- **Line** — `ctp_plot_line` connects each selected X series in row order.
-- **Bar** — `ctp_plot_bar` bars the selected **Y** column (so re-select Y to bar a different
-  column).
-- **Histogram** — `ctp_plot_histogram` bins the selected Y column.
+- **Line** — `ctp_plot_line` connects each selected Y series against X in row order.
+- **Bar** — `ctp_plot_bar` bars the first selected **Y** column (so re-select Y to bar a
+  different column).
+- **Histogram** — `ctp_plot_histogram` bins the first selected Y column.
 
 See the [README showcases](../README.md#showcases) for those rendered, and
 [`examples/11_csv.c`](../examples/11_csv.c) for one dataset re-pointed at different columns

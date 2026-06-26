@@ -39,11 +39,11 @@ int main(void)
 {
     DataSet *ds = ctp_initialize_dataset(/*cols*/ 3, /*name*/ 20, /*rows*/ 10);
 
-    CTP_PARAM y[]    = {-3, -2, -1, 0, 1, 2, 3};
+    CTP_PARAM x[]    = {-3, -2, -1, 0, 1, 2, 3};
     CTP_PARAM yx[]   = {-3, -2, -1, 0, 1, 2, 3};
     CTP_PARAM ynx[]  = { 3,  2,  1, 0, -1, -2, -3};
 
-    ctp_add_column(ds, "y",    y,   7);
+    ctp_add_column(ds, "x",    x,   7);
     ctp_add_column(ds, "y = x", yx,  7);
     ctp_add_column(ds, "y = -x", ynx, 7);
 
@@ -55,12 +55,12 @@ int main(void)
 
 ### Output
 
-`ctp_plot` draws the table, then the scatter. Column 0 is the vertical (Y) axis; the
-remaining columns are plotted as series against it.
+`ctp_plot` draws the table, then the scatter. Column 0 is the horizontal (X) axis; the
+remaining columns are plotted as Y series against it.
 
 ```
 ┌──────────┬──────────┬──────────┐
-│       y  │   y = x  │  y = -x  │
+│       x  │   y = x  │  y = -x  │
 ├──────────┼──────────┼──────────┤
 │   -3.00  │   -3.00  │    3.00  │
 ├──────────┼──────────┼──────────┤
@@ -76,20 +76,32 @@ remaining columns are plotted as series against it.
 ├──────────┼──────────┼──────────┤
 │    3.00  │    3.00  │   -3.00  │
 └──────────┴──────────┴──────────┘
-      ┌────────────────────────────────────────────────────────────────┐
-  3.6 ┼                                │                               │
-      │  ■                             │                             ● │
-  2.1 ┼            ■                   │                   ●           │
-      │                      ■         │         ●                     │
-    0 │────────────────────────────────⊕───────────────────────────────│
- -0.9 ┼                      ●         │         ■                     │
-      │            ●                   │                   ■           │
- -3.9 ┼──────────────┼──────────────┼──────────────┼──────────────┼────┘
-    -3.2           -1.7           -0.2            1.3            2.8
+      ┌────────────────────────────────────────────────────────────┐
+  3.00│■                             │                            ●│
+      │                              │                             │
+      │                              │                             │
+      │          ■                   │                  ●          │
+      │                              │                             │
+  1.42│                              │                             │
+      │                    ■         │        ●                    │
+      │                              │                             │
+      │                              │                             │
+      │──────────────────────────────⊕─────────────────────────────│
+ -0.16│                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │                    ●         │        ■                    │
+      │                              │                             │
+ -1.74│                              │                             │
+      │          ●                   │                  ■          │
+      │                              │                             │
+      │                              │                             │
+ -3.00│●                             │                            ■│
+      └────────────────────────────────────────────────────────────┘
+       -3.00                       0.00                        3.00
 ```
 
-_(Scatter blank rows trimmed for length; the program prints the full grid. In a color
-terminal the two series are red and blue rather than `●` and `■`.)_
+_(In a color terminal the two series are red and blue rather than `●` and `■`.)_
 
 ## Choosing which plots to draw
 

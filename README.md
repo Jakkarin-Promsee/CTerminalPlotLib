@@ -63,7 +63,7 @@ overkill.
 - **Color _and_ monochrome modes** — series are told apart by ANSI color, or by marker
   _shape_ (`● ■ ▲ ◆`) and fill when color is off. Honors the `NO_COLOR` convention.
 - **CSV in, plot out** — `ctp_read_csv()` plus a `ctplot` command-line tool
-  (`ctplot data.csv --line --y 1 --x 0`, or pipe via stdin).
+  (`ctplot data.csv --line --x 0 --y 1`, or pipe via stdin).
 - **Data tools** — sort, search / filter (operators `<`, `<=`, `==`, `!=`, `>`, `>=`), and
   per-column stats (mean, population std-dev, mean absolute deviation).
 - **Dependency-free & portable** — pure C11 + libm. The only OS-specific call lives behind a
@@ -164,35 +164,33 @@ int main(void)
 ├──────────┼──────────┼──────────┤
 │    3.00  │    3.00  │    9.00  │
 └──────────┴──────────┴──────────┘
-      ┌────────────────────────────────────────────────────────────────┐
-  3.6 ┼                 │                                              │
-      │                 │                                              │
-      │                 │              ●                             ■ │
-      │                 │                                              │
-      │                 │                                              │
-  2.1 ┼                 │                                              │
-      │                 │         ●         ■                          │
-      │                 │                                              │
-      │                 │                                              │
-      │                 │    ⊕                                         │
-  0.6 ┼                 │                                              │
-      │                 │                                              │
-    0 │─────────────────⊕──────────────────────────────────────────────│
-      │                 │                                              │
-      │                 │                                              │
- -0.9 ┼                 │                                              │
-      │            ●    │    ■                                         │
-      │                 │                                              │
-      │                 │                                              │
-      │       ●         │                   ■                          │
- -2.4 ┼                 │                                              │
-      │                 │                                              │
-      │  ●              │                                            ■ │
-      │                 │                                              │
-      │                 │                                              │
- -3.9 ┼──────────────┼──────────────┼──────────────┼──────────────┼────┘
-    -3.4           -0.4            2.6            5.6            8.6
+      ┌────────────────────────────────────────────────────────────┐
+  9.00│■                             │                            ■│
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+  5.84│                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │          ■                   │                  ■          │
+      │                              │                            ●│
+  2.68│                              │                             │
+      │                              │                  ●          │
+      │                              │                             │
+      │                    ■         │        ⊕                    │
+      │──────────────────────────────⊕─────────────────────────────│
+ -0.47│                              │                             │
+      │                    ●         │                             │
+      │          ●                   │                             │
+      │                              │                             │
+ -3.00│●                             │                             │
+      └────────────────────────────────────────────────────────────┘
+       -3.00                       0.00                        3.00
 ```
+
+Column 0 is the **X axis** (drawn horizontally); every other column is a **Y series**
+(drawn vertically). So `y = x` rises on the diagonal and `y = x²` traces an upward parabola.
 
 Typical flow: `initialize → add_column… → (select_axes / find / sort) → plot → free`.
 **Full example: [examples/0_quickstart.c](examples/0_quickstart.c).**
@@ -207,46 +205,47 @@ terminal each series gets its own ANSI color.)_
 
 ### Line chart
 
-Connect each X series into a continuous stroke. Multiple series are drawn at once — here a
-straight line (`x = y`) and a sideways parabola (`x = y²`) share one vertical axis:
+Connect each Y series into a continuous stroke against the shared X axis. Multiple series are
+drawn at once — here a straight line (`y = x`) and a parabola (`y = x²`) share one horizontal
+X axis:
 
 ```
       ┌────────────────────────────────────────────────────────────┐
-  3.00│                              ●                        ────■│
-      │                            ╱╱                 ────────     │
-      │                          ╱╱           ────────             │
-      │                         ╱      ───────                     │
-      │                       ╱╱   ────                            │
-  1.42│                     ╱╱─────                                │
-      │                    ───                                     │
-      │                  ╱╱                                        │
-      │                ╱╱                                          │
-      │               ╱                                            │
- -0.16│              ╱ ╲                                           │
-      │            ╱╱   ╲╲                                         │
-      │           ╱       ╲                                        │
-      │          ╱         ╲──                                     │
-      │        ╱╱             ────                                 │
- -1.74│      ╱╱                   ─────                            │
-      │     ╱                          ───────                     │
-      │   ╱╱                                  ────────             │
-      │ ╱╱                                            ────────     │
- -3.00│╱                                                      ─────│
+  9.00│╲                                                          ■│
+      │ ╲                                                        ╱ │
+      │  ╲╲                                                    ╱╱  │
+      │    ╲                                                  ╱    │
+      │     ╲                                                ╱     │
+  5.84│      ╲                                              ╱      │
+      │       ╲╲                                          ╱╱       │
+      │         ╲                                        ╱         │
+      │          ╲╲                                     ╱          │
+      │            ╲╲                                 ╱╱        ──●│
+  2.68│              ╲╲                             ╱╱     ─────   │
+      │                ╲╲                         ╱╱  ─────        │
+      │                  ╲╲                     ╱╱────             │
+      │                    ──────         ────╱╱─                  │
+      │                          ─────────                         │
+ -0.47│                       ─────                                │
+      │                ───────                                     │
+      │        ────────                                            │
+      │   ─────                                                    │
+ -3.00│───                                                         │
       └────────────────────────────────────────────────────────────┘
-       -3.00                       3.00                        9.00
+       -3.00                       0.00                        3.00
 ```
 
 ```c
-CTP_PARAM y[]    = {-3, -2, -1, 0, 1, 2, 3};
-CTP_PARAM line[] = {-3, -2, -1, 0, 1, 2, 3}; // a straight line  (x = y)
-CTP_PARAM para[] = { 9,  4,  1, 0, 1, 4, 9}; // a parabola       (x = y^2)
+CTP_PARAM x[]    = {-3, -2, -1, 0, 1, 2, 3};
+CTP_PARAM line[] = {-3, -2, -1, 0, 1, 2, 3}; // a straight line  (y = x)
+CTP_PARAM para[] = { 9,  4,  1, 0, 1, 4, 9}; // a parabola       (y = x^2)
 
-ctp_add_column(ds, "y", y, 7);
+ctp_add_column(ds, "x", x, 7);
 ctp_add_column(ds, "line", line, 7);
 ctp_add_column(ds, "para", para, 7);
 
-int x_axes[] = {1, 2};
-ctp_select_axes(ds, 0, x_axes, 2);  // y is the vertical axis; line & para are series
+int y_series[] = {1, 2};
+ctp_select_axes(ds, 0, y_series, 2);  // x is the horizontal axis; line & para are series
 ctp_plot_line(ds);
 ```
 
@@ -376,8 +375,8 @@ for (int i = 0; i < N; i++) {
     sinv[i] = (CTP_PARAM)sin(x);
     t[i]    = (CTP_PARAM)x;
 }
-ctp_add_column(ds, "sin", sinv, N);
-ctp_add_column(ds, "t",   t,    N);
+ctp_add_column(ds, "t",   t,    N);   // column 0 -> X (horizontal)
+ctp_add_column(ds, "sin", sinv, N);   // column 1 -> Y series
 ctp_select_axes(ds, 0, (int[]){1}, 1);
 
 ctp_plot_line(ds);                  // block resolution (above)
@@ -394,38 +393,33 @@ For terminals (or pipes) without color, series are told apart by marker **shape*
 automatically when `NO_COLOR` is set, or explicitly with `ctp_set_color(ds, false)`:
 
 ```
-      ┌────────────────────────────────────────────────────────────────┐
-  3.6 ┼                 │                                              │
-      │                 │                                              │
-      │                 │              ■                             ▲ │
-      │                 │                                              │
-      │                 │                                              │
-  2.1 ┼                 │                                              │
-      │                 │         ■         ▲                          │
-      │                 │                                              │
-      │                 │                                              │
-      │                 │    ⊕                                         │
-  0.6 ┼                 │                                              │
-      │                 │                                              │
-    0 │─────────────────⊕──────────────────────────────────────────────│
-      │                 │                                              │
-      │                 │                                              │
- -0.9 ┼                 │                                              │
-      │            ■    │    ▲                                         │
-      │                 │                                              │
-      │                 │                                              │
-      │       ■         │                   ▲                          │
- -2.4 ┼                 │                                              │
-      │                 │                                              │
-      │  ■              │                                            ▲ │
-      │                 │                                              │
-      │                 │                                              │
- -3.9 ┼──────────────┼──────────────┼──────────────┼──────────────┼────┘
-    -3.4           -0.4            2.6            5.6            8.6
+      ┌────────────────────────────────────────────────────────────┐
+  9.00│■                             │                            ■│
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │                              │                             │
+  5.84│                              │                             │
+      │                              │                             │
+      │                              │                             │
+      │          ■                   │                  ■          │
+      │                              │                            ●│
+  2.68│                              │                             │
+      │                              │                  ●          │
+      │                              │                             │
+      │                    ■         │        ⊕                    │
+      │──────────────────────────────⊕─────────────────────────────│
+ -0.47│                              │                             │
+      │                    ●         │                             │
+      │          ●                   │                             │
+      │                              │                             │
+ -3.00│●                             │                             │
+      └────────────────────────────────────────────────────────────┘
+       -3.00                       0.00                        3.00
 ```
 
 ```c
-ctp_select_axes(s, 0, (int[]){1, 2}, 2);
+ctp_select_axes(s, 0, (int[]){1, 2}, 2);  // column 0 = X; columns 1 and 2 = Y series
 ctp_set_color(s, false);     // or run with NO_COLOR=1 in the environment
 ctp_plot_scatter(s);
 ```
@@ -444,11 +438,12 @@ DataSet *ds = ctp_read_csv("examples/data/sample.csv");
 
 ctp_plot_table(ds);                       // 1) the raw numbers, boxed
 
-int month[] = {0};
-ctp_select_axes(ds, 1, month, 1);         // 2) sales (col 1) over month (col 0)
+int sales[] = {1};
+ctp_select_axes(ds, 0, sales, 1);         // 2) sales (col 1) over month (col 0)
 ctp_plot_line(ds);
 
-ctp_select_axes(ds, 2, month, 1);         // 3) profit (col 2) as bars
+int profit[] = {2};
+ctp_select_axes(ds, 0, profit, 1);        // 3) profit (col 2) as bars
 ctp_plot_bar(ds);
 ```
 
@@ -513,7 +508,7 @@ A thin command-line tool over the library — point it at a CSV (or pipe one in)
 charts with flags:
 
 ```sh
-build/ctplot.exe examples/data/sample.csv --line --y 1 --x 0   # sales line
+build/ctplot.exe examples/data/sample.csv --line --x 0 --y 1   # sales line
 build/ctplot.exe examples/data/sample.csv --bar  --y 2         # profit bars
 cat data.csv | build/ctplot.exe --hist --y 1 --bins 12         # or via stdin
 ```
@@ -549,8 +544,8 @@ Bar: profit (12 bars)
 Charts (combine freely; default: --table --scatter):
   --table  --scatter  --line  --bar  --hist
 Options:
-  --y N        vertical / value column      --bins N    histogram bins (default 10)
-  --x N,N,...  horizontal series columns     --braille   8× line rendering
+  --x N        horizontal / independent col   --bins N    histogram bins (default 10)
+  --y N,N,...  vertical series columns         --braille   8× line rendering
   --no-color   force monochrome (also auto-off when piped, or when NO_COLOR is set)
 ```
 

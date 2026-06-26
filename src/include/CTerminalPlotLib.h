@@ -50,9 +50,9 @@ typedef struct
     int db_cols_size_label;         // Number of columns for label
     int db_rows_size;               // Number of rows
     int db_search_size;             // Number of data keep in db_search_keep
-    int chosen_Y_param;             // Y parameter index
-    int *chosen_X_param;            // Array of X parameter indices
-    int chosen_X_param_size;        // Number of chosen X parameters
+    int chosen_X_param;             // X parameter index (single independent axis)
+    int *chosen_Y_param;            // Array of Y parameter indices (the series)
+    int chosen_Y_param_size;        // Number of chosen Y parameters
     int show_begin;                 // Start display index
     int show_end;                   // End display index
     PlotProperties *plotProperties; // Use to keep ploting poproties
@@ -99,9 +99,10 @@ void ctp_add_column(DataSet *dataset, const char *name, const CTP_PARAM *values,
 // quoted fields. Returns NULL on error; caller frees with ctp_free_dataset.
 DataSet *ctp_read_csv(const char *path);
 
-// Axis selection: pick which column is the Y axis and which are the X axes.
+// Axis selection: pick which column is the X axis (the shared, independent axis,
+// drawn horizontally) and which columns are the Y series (drawn vertically).
 // Enables the customized view and shows every row by default.
-void ctp_select_axes(DataSet *dataset, int y_col, const int *x_cols, int x_count);
+void ctp_select_axes(DataSet *dataset, int x_col, const int *y_cols, int y_count);
 void ctp_reset_axes(DataSet *dataset);
 
 // Print DataSet Function - use to show insid variable quickly
@@ -112,11 +113,8 @@ void ctp_printf_dataset(const DataSet *dataSet, CTP_PARAM **db);
 // Utils Function - use to calculate table and graph
 void ctp_utils_update_db_cal(DataSet *data);
 void ctp_utils_swap(CTP_PARAM **db, int col, int a, int b);
-int ctp_utils_partition(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
-void ctp_utils_quicksort(CTP_PARAM **db, int chosen_Y_param, int col, int low, int high);
-void ctp_utils_sort_db(DataSet *data);
-void ctp_utils_sort_db_by_y_param(DataSet *data);
-void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP_PARAM normalize_max[], CTP_PARAM min[], CTP_PARAM max[]);
+int ctp_utils_partition(CTP_PARAM **db, int key_col, int col, int low, int high);
+void ctp_utils_quicksort(CTP_PARAM **db, int key_col, int col, int low, int high);
 void ctp_utils_plot_with_space(const char s[], const char space[]);
 void ctp_utils_print_color(const char s[]);
 

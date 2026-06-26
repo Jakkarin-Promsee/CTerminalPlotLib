@@ -81,18 +81,18 @@ static void test_add_column(void)
 static void test_select_axes(void)
 {
     DataSet *ds = ctp_initialize_dataset(3, 20, 8);
-    CTP_PARAM y[] = {0, 1, 2, 3};
-    CTP_PARAM x1[] = {3, 2, 1, 0};
-    CTP_PARAM x2[] = {0, 2, 4, 6};
-    ctp_add_column(ds, "y", y, 4);
-    ctp_add_column(ds, "x1", x1, 4);
-    ctp_add_column(ds, "x2", x2, 4);
+    CTP_PARAM x[] = {0, 1, 2, 3};
+    CTP_PARAM y1[] = {3, 2, 1, 0};
+    CTP_PARAM y2[] = {0, 2, 4, 6};
+    ctp_add_column(ds, "x", x, 4);
+    ctp_add_column(ds, "y1", y1, 4);
+    ctp_add_column(ds, "y2", y2, 4);
 
-    int xs[] = {1, 2};
-    ctp_select_axes(ds, 0, xs, 2);
-    assert(ds->chosen_Y_param == 0);
-    assert(ds->chosen_X_param_size == 2);
-    assert(ds->chosen_X_param[0] == 1 && ds->chosen_X_param[1] == 2);
+    int ys[] = {1, 2};
+    ctp_select_axes(ds, 0, ys, 2); // column 0 is X; columns 1 and 2 are the Y series
+    assert(ds->chosen_X_param == 0);
+    assert(ds->chosen_Y_param_size == 2);
+    assert(ds->chosen_Y_param[0] == 1 && ds->chosen_Y_param[1] == 2);
     assert(ds->plotProperties->customize_display == true);
     assert(ds->show_end == 4); // defaulted to all rows
 
@@ -100,7 +100,7 @@ static void test_select_axes(void)
     assert(ds->plotProperties->customize_display == false);
 
     ctp_free_dataset(ds);
-    printf("  [ok] select_axes: Y/X selection + show_end default\n");
+    printf("  [ok] select_axes: X/Y selection + show_end default\n");
 }
 
 static void test_csv(void)

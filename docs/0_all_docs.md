@@ -15,7 +15,7 @@ README](../README.md#showcases)**; for complete runnable programs, see
 3. **[Adding rows](3_Adding-Rows.md)** — append rows one at a time, and how ragged columns
    render.
 4. **[Adding columns & choosing axes](4_Adding-Column.md)** — add more series and pick which
-   column is the vertical axis with `ctp_select_axes`.
+   column is the horizontal X axis with `ctp_select_axes`.
 5. **[Search, sort & analyze](5_data-tools.md)** — filter with comparison operators, sort by
    a column, and compute per-column statistics.
 

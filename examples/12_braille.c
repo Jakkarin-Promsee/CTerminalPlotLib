@@ -19,11 +19,11 @@ int main(void)
         sinv[i] = (CTP_PARAM)sin(x);
         t[i] = (CTP_PARAM)x;
     }
-    ctp_add_column(ds, "sin", sinv, N); // column 0 -> vertical (Y)
-    ctp_add_column(ds, "t", t, N);      // column 1 -> horizontal (X)
+    ctp_add_column(ds, "t", t, N);      // column 0 -> horizontal (X)
+    ctp_add_column(ds, "sin", sinv, N); // column 1 -> vertical (Y)
 
-    int x[] = {1};
-    ctp_select_axes(ds, 0, x, 1); // plot sin (Y) against t (X)
+    int y[] = {1};
+    ctp_select_axes(ds, 0, y, 1); // plot sin (Y) against t (X)
 
     printf("Block resolution:\n");
     ctp_plot_line(ds);

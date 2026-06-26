@@ -21,13 +21,15 @@ int main(int argc, char **argv)
     ctp_plot_table(ds);
 
     // 2) Sales (column 1) over the months (column 0) as a line — the growth trend.
-    int month[] = {0};
-    ctp_select_axes(ds, 1, month, 1);
+    //    Month is the X axis; sales is the Y series.
+    int sales[] = {1};
+    ctp_select_axes(ds, 0, sales, 1);
     ctp_plot_line(ds);
 
     // 3) Profit (column 2) as bars — red where the store lost money, green once
-    //    it turned a profit. Re-point the value axis at the profit column.
-    ctp_select_axes(ds, 2, month, 1);
+    //    it turned a profit. Point the Y series at the profit column.
+    int profit[] = {2};
+    ctp_select_axes(ds, 0, profit, 1);
     ctp_plot_bar(ds);
 
     ctp_free_dataset(ds);

@@ -11,9 +11,9 @@ int main()
     int available_cols = 3, available_rows = 7, max_rows = 10;
     CTP_PARAM data[][10] = {
         // max_rows = 10
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default y-axis)
-        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (default x-axis)
-        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (default x-axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 0 (default X axis)
+        {-3, -2, -1, 0, 1, 2, 3}, // Column 1 (Y series)
+        {3, 2, 1, 0, -1, -2, -3}  // Column 2 (Y series)
     };
 
     // 3. Add data to data set
@@ -23,9 +23,9 @@ int main()
     int available_name = 3;
     char name[][20] = {
         // max_name_length = 20
-        "y",      // Column 0 (default y-axis)
-        "y = x",  // Column 1 (default x-axis)
-        "y = -x", // Column 2 (default x-axis)
+        "x",      // Column 0 (default X axis)
+        "y = x",  // Column 1 (Y series)
+        "y = -x", // Column 2 (Y series)
     };
 
     // 5. Add labels to data set

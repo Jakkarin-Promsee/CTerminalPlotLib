@@ -59,12 +59,12 @@ from). Read results from `ds->db_search` / `ds->db_search_size`, or render them 
 
 ## Sort
 
-`ctp_sort` reorders the rows **in place** by the chosen Y column (column 0 by default, or
+`ctp_sort` reorders the rows **in place** by the chosen X column (column 0 by default, or
 whatever you passed to [`ctp_select_axes`](4_Adding-Column.md)). All columns move together, so
 rows stay intact.
 
 ```c
-ctp_sort(ds);          // sort the whole dataset by the Y column, ascending
+ctp_sort(ds);          // sort the whole dataset by the X column, ascending
 ctp_sort_search(ds);   // sort the current search result set instead
 ```
 
@@ -132,6 +132,6 @@ ctp_plot_search(ds);             // table + scatter of the result
 
 ## See also
 
-- [Adding columns & choosing axes](4_Adding-Column.md) — sort/analyze respect the Y column
-  you select.
+- [Adding columns & choosing axes](4_Adding-Column.md) — sort respects the X column you
+  select; analyze runs per column.
 - [README showcases](../README.md#showcases) — the chart renderers.

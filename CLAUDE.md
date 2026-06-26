@@ -29,7 +29,7 @@ make clean      # removes build artifacts
 There's also a small CLI built on the library:
 
 ```sh
-build/ctplot.exe examples/data/sample.csv --line --y 1 --x 0   # plot a CSV column
+build/ctplot.exe examples/data/sample.csv --line --x 0 --y 1   # plot a CSV column
 cat data.csv | build/ctplot.exe --bar --y 1                    # or pipe via stdin
 ```
 `ctplot` auto-disables color when its output is piped/redirected (or `--no-color` / `NO_COLOR`).
@@ -92,7 +92,7 @@ typedef struct {
     CTP_PARAM **db_search;                         // filtered results
     CTP_PARAM **db_cal;                            // scratch for sort/normalize
     int db_cols_size, db_rows_size, db_search_size;
-    int chosen_Y_param, *chosen_X_param, chosen_X_param_size;  // axis selection
+    int chosen_X_param, *chosen_Y_param, chosen_Y_param_size;  // axis selection (X single, Y series)
     int show_begin, show_end;                      // row window
     PlotProperties *plotProperties;                // table/scatter/line/customize toggles
 } DataSet;
@@ -102,7 +102,7 @@ Key facts:
 - **Storage is column-major**: `db[column][row]`; data is added column-blocks at a time.
 - **Capacities are fixed at `ctp_initialize_dataset()`** — no realloc/growth; adding past
   the limits is rejected with an stderr message.
-- **`db_cal` is a scratch copy** rebuilt from `db` before sorting/normalizing so the original
+- **`db_cal` is a scratch copy** rebuilt from `db` before searching/sorting so the original
   order is preserved.
 - Lifecycle is leak-clean: `ctp_initialize_dataset` cleans up on partial failure;
   `ctp_free_dataset` frees everything (incl. `db_search`, `plotProperties`) and is NULL-safe.
@@ -115,17 +115,23 @@ Key facts:
 - **Data I/O:** `ctp_read_csv(path)` — header row → labels, numeric rows → columns,
   blank/non-numeric cells → `CTP_NULL_VALUE`. Simple comma split (no quoted fields).
   Returns a fresh `DataSet*` (caller frees). Sample at `examples/data/sample.csv`.
-- **Axes:** `ctp_select_axes(ds, y_col, x_cols, n)` / `ctp_reset_axes` — pick Y + X columns
-  (enables the customized view, defaults the row window to all rows)
+- **Axes:** `ctp_select_axes(ds, x_col, y_cols, n)` / `ctp_reset_axes` — pick the single X
+  column (independent, horizontal) + the Y series columns (vertical). Convention: **column 0
+  is X by default; columns 1.. are the Y series.** Enables the customized view, defaults the
+  row window to all rows.
 - **Plot:** `ctp_plot` (honors the `table_plot`/`scatter_plot`/`line_plot` flags),
   `ctp_plot_table`, `ctp_plot_scatter`, `ctp_plot_line`, `ctp_plot_bar`,
   `ctp_plot_histogram(ds, bins)`, and `*_search` variants that render `db_search`. The
-  line/bar/histogram renderers rasterize via the internal `CtpCanvas` (Bresenham strokes /
-  block bars) and flush through `ctp_canvas_flush` (boxed frame + Y scale). Line connects
-  each X series in row order (the data's natural sequence); bar draws one vertical block bar per row of
-  the value column on a zero baseline (green up / red down); histogram bins one column and
-  bars the counts (bar + histogram share `ctp_draw_bars`).
-- **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_Y_param`)
+  scatter/line/bar/histogram renderers all rasterize via the internal `CtpCanvas` (Bresenham
+  strokes / block bars) and flush through `ctp_canvas_flush` (boxed frame + Y scale) +
+  `ctp_canvas_print_xaxis`. Scatter and line share `ctp_xy_prepare` (X column + Y series +
+  bounds): scatter drops each Y series' markers against X over a zero-axis crosshair
+  (`ctp_canvas_draw_axes`, drawn behind the points; distinct-series cell collisions become the
+  overlap glyph), line strokes each Y series against X in row order. Bar draws one
+  vertical block bar per row of the value column (first selected Y series, else column 0) on a
+  zero baseline (green up / red down); histogram bins one column and bars the counts (bar +
+  histogram share `ctp_draw_bars`).
+- **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_X_param`, the X column)
 - **Search/filter:** `ctp_findOne`, `ctp_findMany` (operators: `e`/`=`/`==`, `ne`/`!=`,
   `lt`/`<`, `lte`/`<=`, `gt`/`>`, `gte`/`>=`), `ctp_reset_find`. `findMany` chains — each
   call narrows the previous result until `ctp_reset_find()`.
@@ -161,10 +167,11 @@ Typical flow: `initialize → add_column… → (select_axes / find / sort) → 
   someday-fix. Empty cells render blank in tables.
 - `PlotProperties.line_plot` defaults to **off** (so `ctp_plot` stays table+scatter unless
   asked); set the flag or call `ctp_plot_line` directly. The internal `CtpCanvas` (a
-  glyph+color grid with a Bresenham line-draw) is the rasterization foundation the bar and
-  braille renderers will also build on.
-- `ctp_plot_scatter`, if called directly (not via `ctp_plot`), doesn't run
-  `ctp_platform_init()` first. (`ctp_plot_line` does init itself.)
+  glyph+color grid with a Bresenham line-draw) is the shared rasterization foundation for the
+  scatter, line, bar, and braille renderers; scatter and line share the `ctp_xy_prepare`
+  axis/bounds setup.
+- Every public renderer calls `ctp_platform_init()` itself (including `ctp_plot_scatter`), so
+  a direct call still emits correct UTF-8 without going through `ctp_plot`.
 - Commit style: `feat:`/`fix:`/`refactor:`/`docs:`/`chore:`.
 
 ## When changing code
