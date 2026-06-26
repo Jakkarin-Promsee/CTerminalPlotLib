@@ -41,7 +41,7 @@ int main()
     ctp_plot_analyze(dataSet, mean);
     ctp_plot(dataSet);
 
-    printf("%d %d %d %d", sizeof(char), sizeof(int), sizeof(float), sizeof(double));
+    printf("%u %u %u %u", (unsigned)sizeof(char), (unsigned)sizeof(int), (unsigned)sizeof(float), (unsigned)sizeof(double));
 
     // ctp_findMany(dataSet, 0, "gte", -1);
     // ctp_findMany(dataSet, 0, "lte", 2);

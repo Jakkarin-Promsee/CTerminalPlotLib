@@ -79,8 +79,8 @@ extern char *X;
 extern char *Y_ORIGIN;
 extern char *X_ORIGIN;
 
-extern char *POINT_SINGLE;
-extern char *POINT_OVERLAPPED;
+extern char POINT_SINGLE[];
+extern char POINT_OVERLAPPED[];
 extern char *P2;
 
 extern char *COLOR_RESET;

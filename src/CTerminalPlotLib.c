@@ -33,8 +33,9 @@ char *X = "─";
 char *Y_ORIGIN = "┼";
 char *X_ORIGIN = "┼";
 
-char *POINT_SINGLE = "X";
-char *POINT_OVERLAPPED = "O";
+// Writable buffers (not string literals): the point glyph can be changed at runtime
+char POINT_SINGLE[] = "X";
+char POINT_OVERLAPPED[] = "O";
 char *P2 = "O";
 
 char *COLOR_RESET = "\033[0m";
@@ -116,43 +117,39 @@ void ctp_set_grap_point_overlapped(char new_point)
 // Initial DataSet Function - use to initialize inside variable value
 DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_size)
 {
-    // Allocate memory for the dataset structure
-    DataSet *dataset = (DataSet *)malloc(sizeof(DataSet));
+    // Allocate the dataset structure. calloc() zero-fills every pointer so that a
+    // failure partway through can be cleaned up safely (free(NULL) is a no-op).
+    DataSet *dataset = (DataSet *)calloc(1, sizeof(DataSet));
     if (!dataset)
         return NULL;
 
-    // Setting paramiter control value
+    // Setting parameter control values
     dataset->max_name_size = max_name_size;
     dataset->max_param = max_param;
     dataset->max_param_size = max_param_size;
 
-    // Allocate memory for labels array
-    dataset->label = (char **)malloc(max_param * sizeof(char *));
-    if (!dataset->label)
-        return NULL;
+    // Allocate the pointer arrays (zero-filled, so partial cleanup is NULL-safe)
+    dataset->label = (char **)calloc(max_param, sizeof(char *));
+    dataset->db = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
+    dataset->db_search = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
+    dataset->db_cal = (CTP_PARAM **)calloc(max_param, sizeof(CTP_PARAM *));
+    dataset->chosen_X_param = (int *)malloc(max_param * sizeof(int));
+    if (!dataset->label || !dataset->db || !dataset->db_search ||
+        !dataset->db_cal || !dataset->chosen_X_param)
+        goto fail;
+
+    // Allocate each column buffer and initialise its cells
     for (int i = 0; i < max_param; i++)
     {
         dataset->label[i] = (char *)malloc(max_name_size * sizeof(char));
-        dataset->label[i][0] = '\0';
-        if (!dataset->label[i])
-            return NULL;
-    }
-
-    // Allocate memory for data arrays
-    dataset->db = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
-    dataset->db_search = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
-    dataset->db_cal = (CTP_PARAM **)malloc(max_param * sizeof(CTP_PARAM *));
-    if (!dataset->db || !dataset->db_cal)
-        return NULL;
-    for (int i = 0; i < max_param; i++)
-    {
         dataset->db[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
         dataset->db_search[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
         dataset->db_cal[i] = (CTP_PARAM *)malloc(max_param_size * sizeof(CTP_PARAM));
+        if (!dataset->label[i] || !dataset->db[i] ||
+            !dataset->db_search[i] || !dataset->db_cal[i])
+            goto fail;
 
-        if (!dataset->db[i] || !dataset->db_search[i] || !dataset->db_cal[i])
-            return NULL;
-
+        dataset->label[i][0] = '\0';
         for (int j = 0; j < max_param_size; j++)
         {
             dataset->db[i][j] = CTP_NULL_VALUE;
@@ -160,12 +157,11 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
         }
     }
 
-    // Allocate memory for chosen_X_param array
-    dataset->chosen_X_param = (int *)malloc(max_param * sizeof(int));
-    if (!dataset->chosen_X_param)
-        return NULL;
+    dataset->plotProperties = ctp_initialize_plotproperties();
+    if (!dataset->plotProperties)
+        goto fail;
 
-    // Initialize other properties
+    // Remaining scalar properties (calloc already zeroed them; set for clarity)
     dataset->db_cols_size = 0;
     dataset->db_cols_size_label = 0;
     dataset->db_rows_size = 0;
@@ -174,9 +170,12 @@ DataSet *ctp_initialize_dataset(int max_param, int max_name_size, int max_param_
     dataset->chosen_X_param_size = 0;
     dataset->show_begin = 0;
     dataset->show_end = 0;
-    dataset->plotProperties = ctp_initialize_plotproperties();
 
     return dataset;
+
+fail:
+    ctp_free_dataset(dataset);
+    return NULL;
 }
 PlotProperties *ctp_initialize_plotproperties()
 {
@@ -198,26 +197,35 @@ void ctp_free_dataset(DataSet *dataset)
     if (dataset == NULL)
         return;
 
-    // Free labels array
-    for (int i = 0; i < dataset->max_param; i++)
+    // Each pointer is checked because the dataset may be only partially
+    // allocated (ctp_initialize_dataset calls this to clean up a failed init).
+    if (dataset->label)
     {
-        free(dataset->label[i]);
+        for (int i = 0; i < dataset->max_param; i++)
+            free(dataset->label[i]);
+        free(dataset->label);
     }
-    free(dataset->label);
-
-    // Free data arrays
-    for (int i = 0; i < dataset->max_param; i++)
+    if (dataset->db)
     {
-        free(dataset->db[i]);
-        free(dataset->db_cal[i]);
+        for (int i = 0; i < dataset->max_param; i++)
+            free(dataset->db[i]);
+        free(dataset->db);
     }
-    free(dataset->db);
-    free(dataset->db_cal);
+    if (dataset->db_search)
+    {
+        for (int i = 0; i < dataset->max_param; i++)
+            free(dataset->db_search[i]);
+        free(dataset->db_search);
+    }
+    if (dataset->db_cal)
+    {
+        for (int i = 0; i < dataset->max_param; i++)
+            free(dataset->db_cal[i]);
+        free(dataset->db_cal);
+    }
 
-    // Free chosen_X_param array
     free(dataset->chosen_X_param);
-
-    // Finally, free the DataSet structure itself
+    free(dataset->plotProperties);
     free(dataset);
 }
 
@@ -226,7 +234,7 @@ void ctp_add_row(DataSet *dataSet, CTP_PARAM data[])
 {
     if (dataSet->db_rows_size + 1 > dataSet->max_param_size)
     {
-        fprintf(stderr, "Invalid parameters provided to ctp_addData\n");
+        fprintf(stderr, "ctp_add_row: dataset is full (max_param_size reached)\n");
         return;
     }
 
@@ -241,7 +249,7 @@ void ctp_add_data(DataSet *dataset, CTP_PARAM *data, int max_row, int avaliable_
     // Check if the input parameters are valid
     if (dataset == NULL || data == NULL || avaliable_col <= 0 || max_row <= 0)
     {
-        fprintf(stderr, "Invalid parameters provided to ctp_addData\n");
+        fprintf(stderr, "ctp_add_data: invalid parameters\n");
         return;
     }
 
@@ -271,7 +279,7 @@ void ctp_add_label(DataSet *dataset, char *label, int max_name_length, int avali
     // Check if the input parameters are valid
     if (dataset == NULL || label == NULL || max_name_length <= 0 || avaliable_label <= 0)
     {
-        fprintf(stderr, "Invalid parameters provided to ctp_addData\n");
+        fprintf(stderr, "ctp_add_label: invalid parameters\n");
         return;
     }
     for (int i = 0; i < avaliable_label; i++)
@@ -442,7 +450,7 @@ void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP
         {
             min[0] = dataSet->db_cal[i][dataSet->show_begin];
             max[0] = dataSet->db_cal[i][dataSet->show_begin];
-            initialDone[2] = true;
+            initialDone[0] = true;
         }
     }
 
@@ -469,6 +477,14 @@ void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP
         }
     }
 
+    // Guard against divide-by-zero for constant columns (max == min)
+    double range_x = (double)(max[0] - min[0]);
+    double range_y = (double)(max[1] - min[1]);
+    if (range_x == 0.0)
+        range_x = 1.0;
+    if (range_y == 0.0)
+        range_y = 1.0;
+
     // Calculate normalize
     for (int i = 0; i < dataSet->db_cols_size; i++)
     {
@@ -476,18 +492,19 @@ void ctp_utils_normalizes(const DataSet *dataSet, CTP_PARAM normalize_min[], CTP
         for (int j = ((dataSet->plotProperties->customize_display) ? dataSet->show_begin : 0); j < ((dataSet->plotProperties->customize_display) ? dataSet->show_end : dataSet->db_rows_size); j++)
         {
             if (isY)
-                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / (max[1] - min[1])) * SCREEN_H);
+                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / range_y) * SCREEN_H);
             else
-                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / (max[0] - min[0])) * SCREEN_W);
+                dataSet->db_cal[i][j] = (int)floor(((double)(dataSet->db_cal[i][j]) / range_x) * SCREEN_W);
         }
     }
 
     for (int i = 0; i < 2; i++)
     {
         int multiplier = (i == 0) ? SCREEN_W : SCREEN_H;
+        double range = (i == 0) ? range_x : range_y;
 
-        normalize_min[i] = ((double)(min[i]) / (max[i] - min[i])) * multiplier;
-        normalize_max[i] = ((double)(max[i]) / (max[i] - min[i])) * multiplier;
+        normalize_min[i] = ((double)(min[i]) / range) * multiplier;
+        normalize_max[i] = ((double)(max[i]) / range) * multiplier;
     }
 }
 void ctp_utils_plot_with_space(const char s[], const char space[])
@@ -512,7 +529,7 @@ void ctp_plot(DataSet *dataSet)
 
     if (dataSet->plotProperties->table_plot)
         ctp_plot_table(dataSet);
-    if (dataSet->plotProperties->line_plot)
+    if (dataSet->plotProperties->scatter_plot)
         ctp_plot_scatter(dataSet);
 }
 void ctp_plot_search(DataSet *dataSet)
@@ -545,6 +562,9 @@ void ctp_plot_analyze(DataSet *dataSet, CTP_PARAM *st)
     ctp_plot_table_customize(dataSet, _);
 
     dataSet->db_rows_size = row_temp;
+
+    for (int i = 0; i < dataSet->db_cols_size; i++)
+        free(_[i]);
     free(_);
 }
 
@@ -927,106 +947,60 @@ void ctp_findMany(DataSet *dataSet, int select_col, char *operator, CTP_PARAM se
         dataSet->db_rows_size = temp_rows_size;
     }
 
-    char cond_es[5] = "e";
-    char cond_ec[5] = "=";
-    bool cond_eb = strcmp(operator, cond_es) == 0 || strcmp(operator, cond_ec) == 0;
-
-    char cond_lts[5] = "lt";
-    char cond_ltc[5] = "<";
-    bool cond_ltb = strcmp(operator, cond_lts) == 0 || strcmp(operator, cond_ltc) == 0;
-
-    char cond_ltes[5] = "lte";
-    char cond_ltec[5] = "<=";
-    bool cond_lteb = strcmp(operator, cond_ltes) == 0 || strcmp(operator, cond_ltec) == 0;
-
-    char cond_gts[5] = "gt";
-    char cond_gtc[5] = ">";
-    bool cond_gtb = strcmp(operator, cond_gts) == 0 || strcmp(operator, cond_gtc) == 0;
-
-    char cond_gtes[5] = "gte";
-    char cond_gtec[5] = "<";
-    bool cond_gteb = strcmp(operator, cond_gtes) == 0 || strcmp(operator, cond_gtec) == 0;
+    // Resolve the comparison operator once (accepts either symbol or short name)
+    enum
+    {
+        OP_EQ,
+        OP_NE,
+        OP_LT,
+        OP_LTE,
+        OP_GT,
+        OP_GTE
+    } op;
+    if (strcmp(operator, "e") == 0 || strcmp(operator, "=") == 0 || strcmp(operator, "==") == 0)
+        op = OP_EQ;
+    else if (strcmp(operator, "ne") == 0 || strcmp(operator, "!=") == 0)
+        op = OP_NE;
+    else if (strcmp(operator, "lt") == 0 || strcmp(operator, "<") == 0)
+        op = OP_LT;
+    else if (strcmp(operator, "lte") == 0 || strcmp(operator, "<=") == 0)
+        op = OP_LTE;
+    else if (strcmp(operator, "gt") == 0 || strcmp(operator, ">") == 0)
+        op = OP_GT;
+    else if (strcmp(operator, "gte") == 0 || strcmp(operator, ">=") == 0)
+        op = OP_GTE;
+    else
+    {
+        fprintf(stderr, "ctp_findMany: unknown operator \"%s\"\n", operator);
+        return;
+    }
 
     int const_temp_search_size = dataSet->db_search_size;
     dataSet->db_search_size = 0;
 
     for (int i = 0; i < ((!const_isFirstSearch) ? dataSet->db_rows_size : const_temp_search_size); i++)
     {
-        if (cond_eb)
+        CTP_PARAM value = dataSet->db_cal[select_col][i];
+        bool match = false;
+        switch (op)
         {
-            if (dataSet->db_cal[select_col][i] == search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
+        case OP_EQ:  match = (value == search_value); break;
+        case OP_NE:  match = (value != search_value); break;
+        case OP_LT:  match = (value < search_value);  break;
+        case OP_LTE: match = (value <= search_value); break;
+        case OP_GT:  match = (value > search_value);  break;
+        case OP_GTE: match = (value >= search_value); break;
         }
-        else if (cond_ltb)
-        {
-            if (dataSet->db_cal[select_col][i] < search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
 
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_lteb)
-        {
-            if (dataSet->db_cal[select_col][i] <= search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
+        if (!match)
+            continue;
 
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_gtb)
-        {
-            if (dataSet->db_cal[select_col][i] > search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
+        for (int j = 0; j < dataSet->db_cols_size; j++)
+            dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
+        dataSet->db_search_size++;
 
-                if (isFindOne)
-                    return;
-            }
-        }
-        else if (cond_gteb)
-        {
-            if (dataSet->db_cal[select_col][i] >= search_value)
-            {
-                for (int j = 0; j < dataSet->db_cols_size; j++)
-                {
-                    dataSet->db_search[j][dataSet->db_search_size] = dataSet->db_cal[j][i];
-                }
-                dataSet->db_search_size++;
-
-                if (isFindOne)
-                    return;
-            }
-        }
-        else
-        {
-            printf("missed condition");
+        if (isFindOne)
             return;
-        }
     }
 }
 
@@ -1034,10 +1008,8 @@ void ctp_findMany(DataSet *dataSet, int select_col, char *operator, CTP_PARAM se
 CTP_PARAM *ctp_analyze_mean(DataSet *dataSet)
 {
     CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-        mean[i] = 0;
-
     int *n = calloc(dataSet->db_cols_size, sizeof(int));
+
     for (int i = 0; i < dataSet->db_cols_size; i++)
         for (int j = 0; j < dataSet->db_rows_size; j++)
             if (dataSet->db[i][j] != CTP_NULL_VALUE)
@@ -1050,16 +1022,15 @@ CTP_PARAM *ctp_analyze_mean(DataSet *dataSet)
         if (n[i] != 0)
             mean[i] /= n[i];
 
+    free(n);
     return mean;
 }
 CTP_PARAM *ctp_analyze_sd(DataSet *dataSet)
 {
     CTP_PARAM *mean = ctp_analyze_mean(dataSet);
     CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-        sd[i] = 0;
-
     int *n = calloc(dataSet->db_cols_size, sizeof(int));
+
     for (int i = 0; i < dataSet->db_cols_size; i++)
         for (int j = 0; j < dataSet->db_rows_size; j++)
             if (dataSet->db[i][j] != CTP_NULL_VALUE)
@@ -1068,45 +1039,47 @@ CTP_PARAM *ctp_analyze_sd(DataSet *dataSet)
                 n[i]++;
             }
 
+    // Population standard deviation: sqrt of the mean squared deviation
     for (int i = 0; i < dataSet->db_cols_size; i++)
         if (n[i] != 0)
-            sd[i] /= n[i];
+            sd[i] = (CTP_PARAM)sqrt(sd[i] / n[i]);
 
+    free(mean);
+    free(n);
     return sd;
 }
 CTP_PARAM *ctp_analyze_md(DataSet *dataSet)
 {
     CTP_PARAM *mean = ctp_analyze_mean(dataSet);
-    CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-    for (int i = 0; i < dataSet->db_cols_size; i++)
-        sd[i] = 0;
-
+    CTP_PARAM *md = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
     int *n = calloc(dataSet->db_cols_size, sizeof(int));
+
+    // Mean absolute deviation: average of |x - mean| (fabs, not integer abs)
     for (int i = 0; i < dataSet->db_cols_size; i++)
         for (int j = 0; j < dataSet->db_rows_size; j++)
             if (dataSet->db[i][j] != CTP_NULL_VALUE)
             {
-                sd[i] += abs(dataSet->db[i][j] - mean[i]);
+                md[i] += (CTP_PARAM)fabs(dataSet->db[i][j] - mean[i]);
                 n[i]++;
             }
 
     for (int i = 0; i < dataSet->db_cols_size; i++)
         if (n[i] != 0)
-            sd[i] /= n[i];
+            md[i] /= n[i];
 
-    return sd;
+    free(mean);
+    free(n);
+    return md;
 }
 
 CTP_PARAM *ctp_analyze_mean_search(DataSet *dataSet)
 {
-    CTP_PARAM *mean = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-
     CTP_PARAM **temp_db = dataSet->db;
     int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
     dataSet->db_rows_size = dataSet->db_search_size;
 
-    mean = ctp_analyze_mean(dataSet);
+    CTP_PARAM *mean = ctp_analyze_mean(dataSet);
 
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_row;
@@ -1115,14 +1088,12 @@ CTP_PARAM *ctp_analyze_mean_search(DataSet *dataSet)
 }
 CTP_PARAM *ctp_analyze_sd_search(DataSet *dataSet)
 {
-    CTP_PARAM *sd = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-
     CTP_PARAM **temp_db = dataSet->db;
     int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
     dataSet->db_rows_size = dataSet->db_search_size;
 
-    sd = ctp_analyze_sd(dataSet);
+    CTP_PARAM *sd = ctp_analyze_sd(dataSet);
 
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_row;
@@ -1131,14 +1102,12 @@ CTP_PARAM *ctp_analyze_sd_search(DataSet *dataSet)
 }
 CTP_PARAM *ctp_analyze_md_search(DataSet *dataSet)
 {
-    CTP_PARAM *md = calloc(dataSet->db_cols_size, sizeof(CTP_PARAM));
-
     CTP_PARAM **temp_db = dataSet->db;
     int temp_row = dataSet->db_rows_size;
     dataSet->db = dataSet->db_search;
     dataSet->db_rows_size = dataSet->db_search_size;
 
-    md = ctp_analyze_sd(dataSet);
+    CTP_PARAM *md = ctp_analyze_md(dataSet);
 
     dataSet->db = temp_db;
     dataSet->db_rows_size = temp_row;
