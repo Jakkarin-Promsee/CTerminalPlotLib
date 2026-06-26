@@ -122,6 +122,7 @@ void ctp_plot_scatter(DataSet *dataSet);
 void ctp_plot_scatter_search(DataSet *dataSet);
 void ctp_plot_line(DataSet *dataSet);
 void ctp_plot_bar(DataSet *dataSet);
+void ctp_plot_histogram(DataSet *dataSet, int bins);
 
 // Sort Function - use to sort all data
 void ctp_sort(DataSet *data);

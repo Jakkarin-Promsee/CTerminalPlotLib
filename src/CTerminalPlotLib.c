@@ -1410,6 +1410,101 @@ void ctp_plot_bar(DataSet *dataSet)
     free(vals);
 }
 
+// Histogram: bin one column's values into `bins` equal-width buckets and draw
+// the per-bin counts as vertical bars. Shares ctp_draw_bars / ctp_canvas_flush
+// with the bar chart; only the binning and the X-axis labels differ.
+void ctp_plot_histogram(DataSet *dataSet, int bins)
+{
+    ctp_platform_init();
+
+    const bool custom = dataSet->plotProperties->customize_display;
+    const int W = dataSet->style.screen_w;
+    const int H = dataSet->style.screen_h;
+    const int col = custom ? dataSet->chosen_Y_param : 0;
+    const int row0 = custom ? dataSet->show_begin : 0;
+    const int row1 = custom ? dataSet->show_end : dataSet->db_rows_size;
+    const int n = row1 - row0;
+    if (n <= 0 || W < 2 || H < 2 || bins < 1)
+    {
+        fprintf(stderr, "ctp_plot_histogram: bad args (need rows, >=2x2 canvas, bins>=1)\n");
+        return;
+    }
+    if (bins > W)
+        bins = W; // can't show more bars than there are columns
+
+    // Data range over the column.
+    double dmin = 0, dmax = 0;
+    bool init = false;
+    for (int i = 0; i < n; i++)
+    {
+        CTP_PARAM v = dataSet->db[col][row0 + i];
+        if (v == CTP_NULL_VALUE)
+            continue;
+        if (!init) { dmin = dmax = v; init = true; }
+        else if (v < dmin) dmin = v;
+        else if (v > dmax) dmax = v;
+    }
+    if (!init)
+    {
+        fprintf(stderr, "ctp_plot_histogram: no data\n");
+        return;
+    }
+    double span = dmax - dmin;
+    if (span == 0)
+        span = 1;
+    double binw = span / bins;
+
+    // Tally counts per bin.
+    double *counts = (double *)calloc(bins, sizeof(double));
+    double maxc = 0;
+    for (int i = 0; i < n; i++)
+    {
+        CTP_PARAM v = dataSet->db[col][row0 + i];
+        if (v == CTP_NULL_VALUE)
+            continue;
+        int b = (int)floor(((double)v - dmin) / binw);
+        if (b < 0) b = 0;
+        if (b >= bins) b = bins - 1; // dmax falls in the last bin
+        counts[b] += 1.0;
+        if (counts[b] > maxc)
+            maxc = counts[b];
+    }
+    if (maxc == 0)
+        maxc = 1;
+
+    CtpCanvas *cv = ctp_canvas_new(W, H);
+    if (!cv)
+    {
+        fprintf(stderr, "ctp_plot_histogram: out of memory\n");
+        free(counts);
+        return;
+    }
+
+    ctp_draw_bars(cv, counts, bins, 0, maxc); // counts >= 0 -> all green
+
+    const int LAB = 6;
+    printf("Histogram: %s (%d bins, range %.2f..%.2f)\n", dataSet->label[col], bins, dmin, dmax);
+    ctp_canvas_flush(cv, LAB, 0, maxc);
+
+    // X-axis: the binned data range (left / middle / right edges).
+    char *xrow = (char *)malloc(W + 1);
+    for (int i = 0; i < W; i++)
+        xrow[i] = ' ';
+    xrow[W] = '\0';
+    char tick[24];
+    snprintf(tick, sizeof tick, "%.2f", dmin);
+    ctp_canvas_place(xrow, W, 0, tick);
+    snprintf(tick, sizeof tick, "%.2f", (dmin + dmax) / 2);
+    ctp_canvas_place(xrow, W, W / 2 - (int)strlen(tick) / 2, tick);
+    snprintf(tick, sizeof tick, "%.2f", dmax);
+    ctp_canvas_place(xrow, W, W - (int)strlen(tick), tick);
+    printf("%*s%s\n", LAB + 1, "", xrow);
+
+    free(xrow);
+    ctp_canvas_free(cv);
+    free(counts);
+}
+
 // Sort Function - use to sort all data
 void ctp_sort(DataSet *data)
 {

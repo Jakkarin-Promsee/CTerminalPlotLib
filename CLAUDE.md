@@ -106,11 +106,13 @@ Key facts:
 - **Axes:** `ctp_select_axes(ds, y_col, x_cols, n)` / `ctp_reset_axes` — pick Y + X columns
   (enables the customized view, defaults the row window to all rows)
 - **Plot:** `ctp_plot` (honors the `table_plot`/`scatter_plot`/`line_plot` flags),
-  `ctp_plot_table`, `ctp_plot_scatter`, `ctp_plot_line`, `ctp_plot_bar`, and `*_search`
-  variants that render `db_search`. The line and bar renderers rasterize via the internal
-  `CtpCanvas` (Bresenham strokes / block bars) and flush through `ctp_canvas_flush` (boxed
-  frame + Y scale). Line connects each X series ordered by the shared Y value; bar draws one
-  vertical block bar per row of the value column, on a zero baseline (green up / red down).
+  `ctp_plot_table`, `ctp_plot_scatter`, `ctp_plot_line`, `ctp_plot_bar`,
+  `ctp_plot_histogram(ds, bins)`, and `*_search` variants that render `db_search`. The
+  line/bar/histogram renderers rasterize via the internal `CtpCanvas` (Bresenham strokes /
+  block bars) and flush through `ctp_canvas_flush` (boxed frame + Y scale). Line connects
+  each X series ordered by the shared Y value; bar draws one vertical block bar per row of
+  the value column on a zero baseline (green up / red down); histogram bins one column and
+  bars the counts (bar + histogram share `ctp_draw_bars`).
 - **Sort:** `ctp_sort`, `ctp_sort_search` (quicksort by `chosen_Y_param`)
 - **Search/filter:** `ctp_findOne`, `ctp_findMany` (operators: `e`/`=`/`==`, `ne`/`!=`,
   `lt`/`<`, `lte`/`<=`, `gt`/`>`, `gte`/`>=`), `ctp_reset_find`. `findMany` chains — each
